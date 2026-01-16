@@ -120,7 +120,7 @@ export function CommandCapsule({
       <button
         onClick={onGenerate}
         disabled={isGenerating || !prompt.trim()}
-        className="btn-primary-action"
+        className="btn-primary-action glow-animated"
         style={{
             background: isGenerating ? 'transparent' : 'rgba(255,255,255,0.05)',
             display: 'flex',

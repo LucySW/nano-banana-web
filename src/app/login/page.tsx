@@ -78,7 +78,7 @@ export default function LoginPage() {
         <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
            {/* Breathing Logo */}
            <div 
-             className="breathing-logo"
+             className="breathing-logo glow-animated"
              style={{ 
                 width: '80px', 
                 height: '80px', 
@@ -87,6 +87,7 @@ export default function LoginPage() {
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'center',
                 margin: '0 auto 1.5rem auto',
+                borderRadius: '50%', // Circular glow
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
              }}
           >

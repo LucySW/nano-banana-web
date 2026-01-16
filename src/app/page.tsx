@@ -8,14 +8,26 @@ import { Sparkles, Cloud, LogIn, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import { uploadImageToDrive } from '../lib/drive';
+import { WelcomeModal } from '../components/WelcomeModal'; // Ensure import exists
 
-// ... (existing code)
+const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function Home() {
-  // ... (existing code, unchanged until render)
+  const [apiKey, setApiKey] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false); // Restored State
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  
+  // New States
+  const [isGuest, setIsGuest] = useState(true);
+  const [userSession, setUserSession] = useState<any>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const router = useRouter();
       
       {/* Welcome Modal (Onboarding) */}
       {showWelcomeModal && (

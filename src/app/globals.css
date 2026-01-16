@@ -141,3 +141,23 @@ body::before {
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6), 0 0 10px rgba(50, 200, 255, 0.4); }
+  100% { box-shadow: 0 0 5px rgba(139, 92, 246, 0.2); }
+}
+
+.glow-animated {
+  animation: glow-pulse 3s infinite ease-in-out;
+}
+
+@keyframes rgb-border-flow {
+    0% { border-color: var(--rgb-red); }
+    33% { border-color: var(--rgb-green); }
+    66% { border-color: var(--rgb-blue); }
+    100% { border-color: var(--rgb-red); }
+}
+
+.border-flow {
+    animation: rgb-border-flow 6s infinite linear;
+}
