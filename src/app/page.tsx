@@ -4,11 +4,12 @@ import { Conversation, Message } from '../types';
 import { ZeroConfigModal } from '../components/ZeroConfigModal';
 import { Sidebar } from '../components/Sidebar';
 import { ControlDeck } from '../components/ControlDeck';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Cloud, LogIn } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
+import { uploadImageToDrive } from '../lib/drive';
 
-const generateId = () => Math.random().toString(36).substr(2, 9); // Still useful for optimistic UI
+const generateId = () => Math.random().toString(36).substr(2, 9);
 
 export default function Home() {
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -17,6 +18,12 @@ export default function Home() {
   const [isLocked, setIsLocked] = useState(true);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // New States
+  const [isGuest, setIsGuest] = useState(true);
+  const [userSession, setUserSession] = useState<any>(null);
+  const [syncing, setSyncing] = useState(false);
+
   const router = useRouter();
   
   // Settings State
@@ -24,50 +31,83 @@ export default function Home() {
   const [resolution, setResolution] = useState("1K");
   const [smartSaveMode, setSmartSaveMode] = useState<'flat' | 'project'>('flat');
   
-  // --- LOAD PROJECTS ---
-  const loadProjects = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
+  // --- LOAD PROJECTS (Cloud) ---
+  const loadCloudProjects = async (userId: string) => {
     const { data, error } = await supabase
         .from('projects')
         .select('*')
         .order('updated_at', { ascending: false });
 
     if (data) {
-        // Map DB projects to Conversation type (messages loaded lazily ideally, but for now we can fetch them or init empty)
-        // For simplicity now: we load just the list.
         const mapped: Conversation[] = data.map((p: any) => ({
             id: p.id,
             title: p.title,
-            messages: [], // We will load these when selected
+            messages: [], 
             createdAt: p.created_at
         }));
-        setConversations(mapped);
-        
-        // If we have projects but no current selection, select first
-        if (mapped.length > 0 && !currentId) {
-            handleSelectProject(mapped[0].id);
-        } else if (mapped.length === 0) {
-             // Create default if none? Or wait for user.
+        return mapped;
+    }
+    return [];
+  };
+
+  // --- SYNC LOGIC (Local -> Cloud) ---
+  const syncLocalToCloud = async (userId: string) => {
+    const local = localStorage.getItem('romsoft_conversations');
+    if (!local) return;
+
+    try {
+        const localConvs: Conversation[] = JSON.parse(local);
+        if (localConvs.length === 0) return;
+
+        setSyncing(true);
+        console.log("Syncing local projects to cloud...");
+
+        for (const conv of localConvs) {
+            // 1. Create Project in DB
+            const { data: projData, error: projError } = await supabase
+                .from('projects')
+                .insert([{ user_id: userId, title: conv.title }])
+                .select()
+                .single();
+            
+            if (projData) {
+                // 2. Upload Messages
+                for (const msg of conv.messages) {
+                    await supabase.from('generations').insert({
+                        project_id: projData.id,
+                        role: msg.role,
+                        content: msg.content, 
+                        prompt_text: msg.textPrompt,
+                        ratio: msg.metadata?.ratio,
+                        resolution: msg.metadata?.resolution,
+                        temperature: msg.metadata?.temp
+                    });
+                }
+            }
         }
+        
+        // Clear local after sync
+        localStorage.removeItem('romsoft_conversations');
+        console.log("Sync complete.");
+        setSyncing(false);
+    } catch (e) {
+        console.error("Sync failed", e);
     }
   };
 
-  // --- LOAD MESSAGES (Generations) ---
-  const loadMessages = async (projectId: string) => {
+  // --- LOAD MESSAGES (Cloud) ---
+  const loadCloudMessages = async (projectId: string) => {
       const { data, error } = await supabase
         .from('generations')
         .select('*')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: true }); // Chronological
+        .order('created_at', { ascending: true });
 
       if (data) {
           const mappedMsgs: Message[] = data.map((g: any) => ({
               id: g.id,
               role: g.role,
-              content: g.content, // Text or Base64 (if we stored base64 in DB, note: DB size limit!)
-              // NOTE: For now assume content is stored. If images are large, verify storage strategy.
+              content: g.content, 
               textPrompt: g.prompt_text,
               metadata: {
                   timestamp: g.created_at,
@@ -87,18 +127,40 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // 1. Check Auth & Load
+    // Auth & Init Logic
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
+      
+      if (session?.user) {
+        // --- LOGGED IN ---
+        setIsGuest(false);
+        setUserSession(session);
+        
+        // 1. Sync any pending local data
+        await syncLocalToCloud(session.user.id);
+
+        // 2. Load Cloud Data
+        const cloudProjects = await loadCloudProjects(session.user.id);
+        setConversations(cloudProjects);
+        if (cloudProjects.length > 0) {
+            setCurrentId(cloudProjects[0].id);
+            loadCloudMessages(cloudProjects[0].id);
+        }
+
+      } else {
+        // --- GUEST MODE ---
+        setIsGuest(true);
+        const savedConvs = localStorage.getItem('romsoft_conversations');
+        if (savedConvs) {
+          const parsed = JSON.parse(savedConvs);
+          setConversations(parsed);
+          if (parsed.length > 0) setCurrentId(parsed[0].id);
+        }
       }
-      loadProjects();
     };
     init();
 
-    // 2. Load API Key (Local Setting)
+    // Load API Key (Local Setting)
     const key = localStorage.getItem('romsoft_key');
     if (key) {
       setApiKey(key);
@@ -106,9 +168,18 @@ export default function Home() {
     }
   }, []);
 
+  // Sync LocalStorage if Guest
+  useEffect(() => {
+    if (isGuest && conversations.length > 0) {
+        localStorage.setItem('romsoft_conversations', JSON.stringify(conversations));
+    }
+  }, [conversations, isGuest]);
+
   const handleSelectProject = (id: string) => {
       setCurrentId(id);
-      loadMessages(id);
+      if (!isGuest) {
+          loadCloudMessages(id);
+      }
   };
 
   const handleValidate = (key: string) => {
@@ -118,29 +189,38 @@ export default function Home() {
     if (conversations.length === 0) handleNewConversation();
   };
 
-  // --- NEW PROJECT ---
   const handleNewConversation = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if(!user) return;
-
     const newTitle = "Nova Ideia";
-    
-    // Insert into DB
-    const { data, error } = await supabase
-        .from('projects')
-        .insert([{ user_id: user.id, title: newTitle }])
-        .select()
-        .single();
-    
-    if (data) {
+    const newId = generateId();
+
+    if (isGuest) {
         const newConv: Conversation = {
-            id: data.id,
-            title: data.title,
+            id: newId,
+            title: newTitle,
             messages: [],
-            createdAt: data.created_at
+            createdAt: new Date().toISOString()
         };
         setConversations(prev => [newConv, ...prev]);
         setCurrentId(newConv.id);
+    } else {
+        // Create in DB
+        if (!userSession?.user) return;
+        const { data } = await supabase
+            .from('projects')
+            .insert([{ user_id: userSession.user.id, title: newTitle }])
+            .select()
+            .single();
+        
+        if (data) {
+            const newConv: Conversation = {
+                id: data.id,
+                title: data.title,
+                messages: [],
+                createdAt: data.created_at
+            };
+            setConversations(prev => [newConv, ...prev]);
+            setCurrentId(newConv.id);
+        }
     }
   };
 
@@ -149,13 +229,9 @@ export default function Home() {
   const handleGenerate = async () => {
     if (!input.trim() || !activeConversation || !apiKey) return;
     
-    const { data: { user } } = await supabase.auth.getUser();
-    if(!user) return;
-
-    const tempId = generateId(); // Optimistic ID
-    const userMsg: Message = { id: tempId, role: 'user', content: input };
-    
     // Optimistic Update
+    const tempId = generateId();
+    const userMsg: Message = { id: tempId, role: 'user', content: input };
     let updatedConv = { ...activeConversation, messages: [...activeConversation.messages, userMsg] };
     
     // Update Title if first message
@@ -163,18 +239,21 @@ export default function Home() {
     if (isFirst) {
         const newTitle = input.slice(0, 30) + (input.length > 30 ? "..." : "");
         updatedConv.title = newTitle;
-        // Update DB Title
-        supabase.from('projects').update({ title: newTitle }).eq('id', activeConversation.id).then();
+        if (!isGuest) {
+            supabase.from('projects').update({ title: newTitle }).eq('id', activeConversation.id).then();
+        }
     }
 
     setConversations(prev => prev.map(c => c.id === currentId ? updatedConv : c));
     
-    // Save User Msg to DB (Async)
-    supabase.from('generations').insert({
-        project_id: activeConversation.id,
-        role: 'user',
-        content: input
-    }).then();
+    // Save User Msg
+    if (!isGuest) {
+        supabase.from('generations').insert({
+            project_id: activeConversation.id,
+            role: 'user',
+            content: input
+        }).then();
+    }
 
     setInput("");
     setLoading(true);
@@ -185,7 +264,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           apiKey,
-          prompt: input, // use the captured input variable
+          prompt: input, 
           ratio,
           resolution,
           temperature: 0.7, 
@@ -210,24 +289,58 @@ export default function Home() {
             }
         };
 
-        updatedConv = { ...updatedConv, messages: [...updatedConv.messages, aiMsg] }; // Refresh ref
+        updatedConv = { ...updatedConv, messages: [...updatedConv.messages, aiMsg] };
         setConversations(prev => prev.map(c => c.id === currentId ? updatedConv : c));
         
-        // Save AI Msg to DB
-        // WARNING: Storing Base64 image in TEXT column is heavy. 
-        // Ideally upload to Storage. But per user request "Supabase free limit", keeping it simple for now or expecting just text?
-        // Actually user said "database should support it... maybe link Google Drive".
-        // For now, allow Base64 in DB (it works for small scale) but warn user.
-        await supabase.from('generations').insert({
-            project_id: activeConversation.id,
-            role: 'model',
-            content: data.image, // Base64
-            prompt_text: input,
-            ratio,
-            resolution,
-            temperature: 0.7
-        });
+        if (!isGuest && userSession?.provider_token) {
+            // --- GOOGLE DRIVE UPLOAD ---
+            console.log("Uploading to Drive...");
+            try {
+                const driveResult = await uploadImageToDrive(
+                    userSession.provider_token, 
+                    data.image, 
+                    `NanoBanana_${Date.now()}.png`
+                );
+                
+                // Save Message with Drive Link
+                await supabase.from('generations').insert({
+                    project_id: activeConversation.id,
+                    role: 'model',
+                    content: driveResult.webViewLink || data.image, // Use link if available
+                    prompt_text: input,
+                    ratio,
+                    resolution,
+                    temperature: 0.7
+                });
+                console.log("Saved to Drive:", driveResult.webViewLink);
+                
+            } catch (driveErr) {
+                console.error("Drive upload failed, using DB fallback", driveErr);
+                // Fallback to storing base64
+                await supabase.from('generations').insert({
+                    project_id: activeConversation.id,
+                    role: 'model',
+                    content: data.image,
+                    prompt_text: input,
+                    ratio,
+                    resolution,
+                    temperature: 0.7
+                });
+            }
+        } else if (!isGuest) {
+             // Logged in but no Google Token (e.g. Email login) -> DB Storage
+             await supabase.from('generations').insert({
+                project_id: activeConversation.id,
+                role: 'model',
+                content: data.image,
+                prompt_text: input,
+                ratio,
+                resolution,
+                temperature: 0.7
+            });
+        }
 
+        // --- CLIENT SIDE DOWNLOAD (Smart Save) ---
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const projectNameClean = updatedConv.title.replace(/[^a-z0-9]/gi, '_').slice(0, 20);
         let filename = `NanoBanana_${timestamp}`;
@@ -269,6 +382,44 @@ export default function Home() {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-deep)', position: 'relative' }}>
         
+        {/* Guest Banner */}
+        {isGuest && (
+            <div style={{ 
+                background: 'rgba(239, 68, 68, 0.1)', 
+                borderBottom: '1px solid rgba(239, 68, 68, 0.2)', 
+                padding: '0.5rem 1rem', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between' 
+            }}>
+                <span style={{ fontSize: '0.85rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Cloud size={16} /> Modo Convidado: Dados salvos apenas neste computador.
+                </span>
+                <button 
+                    onClick={() => router.push('/login')}
+                    className="btn-accent"
+                    style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem', height: 'auto', background: 'var(--accent-primary)' }}
+                >
+                    <LogIn size={14} style={{ marginRight: '0.4rem' }} />
+                    Entrar e Sincronizar
+                </button>
+            </div>
+        )}
+
+        {/* Syncing Indicator */}
+        {syncing && (
+             <div style={{ 
+                background: 'rgba(59, 130, 246, 0.1)', 
+                borderBottom: '1px solid rgba(59, 130, 246, 0.2)', 
+                padding: '0.5rem 1rem', 
+                textAlign: 'center',
+                color: '#60a5fa',
+                fontSize: '0.8rem'
+            }}>
+                Sincronizando seus projetos antigos para a nuvem...
+            </div>
+        )}
+
         <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '200px' }}>
           {!activeConversation || activeConversation.messages.length === 0 ? (
             <div style={{ marginTop: '20vh', textAlign: 'center', opacity: 0.4 }}>
@@ -300,7 +451,7 @@ export default function Home() {
                                 borderRadius: '12px'
                              }}>
                                 <img 
-                                    src={`data:image/png;base64,${msg.content}`} 
+                                    src={msg.content.startsWith('http') ? msg.content : `data:image/png;base64,${msg.content}`} 
                                     style={{ display: 'block', maxWidth: '100%', borderRadius: '8px', maxHeight: '60vh' }}
                                 />
                             </div>
@@ -359,8 +510,7 @@ export default function Home() {
                     border: '1px solid var(--border-color)',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
                 }}>
-                    {/* Paperclip Upload */}
-                    <button className="btn-clean"><Sparkles size={18} style={{ opacity: 0}} /></button> {/* Spacer or implement real logic */}
+                    <button className="btn-clean"><Sparkles size={18} style={{ opacity: 0}} /></button> 
                     
                     <textarea 
                         value={input}
@@ -390,7 +540,6 @@ export default function Home() {
                             style={{ background: '#ef4444' }} // Red for stop
                             onClick={() => {
                                 setLoading(false);
-                                // Logic to abort fetch would go here (AbortController)
                             }}
                         >
                             <div style={{ width: '12px', height: '12px', background: 'white', borderRadius: '2px' }}></div>

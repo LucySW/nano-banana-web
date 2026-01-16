@@ -119,7 +119,12 @@ export default function LoginPage() {
                 const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: {
-                        redirectTo: `${window.location.origin}` // Redirect to home so client can restore session
+                        redirectTo: `${window.location.origin}`,
+                        queryParams: {
+                            access_type: 'offline', // Request Refresh Token
+                            prompt: 'consent',
+                            scope: 'https://www.googleapis.com/auth/drive.file email profile openid'
+                        }
                     }
                 });
                 if (error) alert(error.message);
