@@ -17,14 +17,17 @@ export function ControlDeck({
   smartSaveMode, setSmartSaveMode
 }: ControlDeckProps) {
 
-  const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showRatioMenu, setShowRatioMenu] = useState(false);
   const ratioMenuRef = useRef<HTMLDivElement>(null);
+  const saveMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (ratioMenuRef.current && !ratioMenuRef.current.contains(event.target as Node)) {
         setShowRatioMenu(false);
+      }
+      if (saveMenuRef.current && !saveMenuRef.current.contains(event.target as Node)) {
+        setShowSaveMenu(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -198,64 +201,75 @@ export function ControlDeck({
       {/* Smart Save Widget */}
       <div 
         style={{ position: 'relative' }}
-        onMouseEnter={() => setShowSaveMenu(true)}
-        onMouseLeave={() => setShowSaveMenu(false)}
+        ref={saveMenuRef} // Add ref to track clicks outside
       >
-        <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            color: 'var(--success-color)', 
-            fontSize: '0.8rem', 
-            cursor: 'help',
-            padding: '8px 12px',
-            background: 'var(--bg-input)',
-            borderRadius: '12px',
-            border: '1px solid transparent'
-        }}>
+        <button 
+            onClick={() => setShowSaveMenu(!showSaveMenu)} // Switch to Click
+            style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.5rem', 
+                color: 'var(--success-color)', 
+                fontSize: '0.8rem', 
+                cursor: 'pointer',
+                padding: '6px 12px',
+                background: showSaveMenu ? 'var(--bg-input)' : 'transparent', // Visual feedback
+                borderRadius: '99px',
+                border: '1px solid var(--border-color)',
+                transition: 'all 0.2s'
+            }}
+            title="Opções de Salvamento"
+        >
             <Save size={16} />
             <span style={{ fontWeight: 600 }}>Auto-Save</span>
-        </div>
+            {showSaveMenu ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
 
-        {/* Hover Menu */}
+        {/* Click Menu */}
         {showSaveMenu && (
             <div style={{
                 position: 'absolute',
-                bottom: '120%',
+                bottom: '130%',
                 right: 0,
-                width: '280px',
+                width: '240px',
                 background: 'var(--bg-card)',
                 border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                padding: '1rem',
-                boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                borderRadius: '16px',
+                padding: '0.8rem',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
                 zIndex: 100,
-                animation: 'slideUp 0.2s ease'
+                animation: 'slideUp 0.15s ease'
             }}>
-                <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '0.9rem' }}>Estratégia de Salvamento</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', background: smartSaveMode === 'flat' ? 'rgba(255,255,255,0.05)' : 'transparent' }}>
+                <h4 style={{ margin: '0 0 0.8rem 0', color: 'var(--text-secondary)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Salvar Arquivos
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer', padding: '0.6rem', borderRadius: '8px', background: smartSaveMode === 'flat' ? 'rgba(255,255,255,0.05)' : 'transparent', transition: 'background 0.2s' }}>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: smartSaveMode === 'flat' ? '4px solid var(--accent-primary)' : '2px solid var(--text-dim)', boxSizing: 'border-box' }}></div>
                         <input 
                             type="radio" 
                             name="smartSave" 
                             checked={smartSaveMode === 'flat'} 
-                            onChange={() => setSmartSaveMode('flat')}
+                            onChange={() => { setSmartSaveMode('flat'); setShowSaveMenu(false); }}
+                            style={{ display: 'none' }}
                         />
                         <div>
-                            <div style={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}>Pasta Única</div>
-                            <div style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>/Downloads/NanoBanana/Image.png</div>
+                            <div style={{ color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 500 }}>Pasta Única</div>
+                            <div style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>/Downloads/NanoBanana/</div>
                         </div>
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', borderRadius: '6px', background: smartSaveMode === 'project' ? 'rgba(255,255,255,0.05)' : 'transparent' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer', padding: '0.6rem', borderRadius: '8px', background: smartSaveMode === 'project' ? 'rgba(255,255,255,0.05)' : 'transparent', transition: 'background 0.2s' }}>
+                        <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: smartSaveMode === 'project' ? '4px solid var(--accent-primary)' : '2px solid var(--text-dim)', boxSizing: 'border-box' }}></div>
                         <input 
                             type="radio" 
                             name="smartSave" 
                             checked={smartSaveMode === 'project'} 
-                            onChange={() => setSmartSaveMode('project')}
+                            onChange={() => { setSmartSaveMode('project'); setShowSaveMenu(false); }}
+                            style={{ display: 'none' }}
                         />
                         <div>
-                            <div style={{ color: 'var(--text-primary)', fontSize: '0.85rem' }}>Por Projeto</div>
-                            <div style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>/Downloads/NanoBanana/ProjectA/..</div>
+                            <div style={{ color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 500 }}>Organizar por Projeto</div>
+                            <div style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>/Project/Image.png</div>
                         </div>
                     </label>
                 </div>

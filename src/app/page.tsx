@@ -11,12 +11,14 @@ import { uploadImageToDrive } from '../lib/drive';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+import { WelcomeModal } from '../components/WelcomeModal';
+
 export default function Home() {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  // REMOVED: const [isLocked, setIsLocked] = useState(true);
-  const [showKeyModal, setShowKeyModal] = useState(false); // New state for on-demand modal
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false); // New Welcome State
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,28 @@ export default function Home() {
   const [ratio, setRatio] = useState("16:9");
   const [resolution, setResolution] = useState("1K");
   const [smartSaveMode, setSmartSaveMode] = useState<'flat' | 'project'>('flat');
+
+  // Welcome Modal Logic
+  useEffect(() => {
+    // Check for API key on mount
+    const stored = localStorage.getItem("romsoft_api_key");
+    if (stored) {
+        setApiKey(stored);
+    } else {
+        // Only show welcome if no key is found
+        // Use timeout to prevent hydration mismatch flicker
+        setTimeout(() => setShowWelcomeModal(true), 500);
+    }
+  }, []);
+
+  const handleWelcomeComplete = (key: string | null) => {
+    if (key) {
+        setApiKey(key);
+        localStorage.setItem("romsoft_api_key", key);
+    }
+    setShowWelcomeModal(false);
+  };
+
   
   // --- LOAD PROJECTS (Cloud) ---
   const loadCloudProjects = async (userId: string) => {
@@ -405,6 +429,11 @@ export default function Home() {
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
       
+      {/* Welcome Modal (Onboarding) */}
+      {showWelcomeModal && (
+        <WelcomeModal onComplete={handleWelcomeComplete} />
+      )}
+
       {/* API Key Modal (On Demand) */}
       {showKeyModal && (
         <ZeroConfigModal onValidate={handleValidate} />
