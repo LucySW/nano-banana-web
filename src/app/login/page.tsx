@@ -107,6 +107,40 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0' }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+            <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>OU</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+        </div>
+
+        <button 
+            onClick={async () => {
+                setLoading(true);
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                        redirectTo: `${window.location.origin}` // Redirect to home so client can restore session
+                    }
+                });
+                if (error) alert(error.message);
+                // Note: OAuth redirects away, so setLoading(false) might not be needed if success
+            }}
+            className="btn-clean"
+            style={{ 
+                width: '100%', 
+                background: 'white', 
+                color: 'black', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '0.5rem',
+                fontWeight: 600
+            }}
+        >
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="G" style={{ width: '20px' }} />
+            Continuar com Google
+        </button>
+
         <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
           <button 
             onClick={handleSignUp}
