@@ -1,16 +1,18 @@
 "use client";
 import React from 'react';
 import { Conversation } from '../types';
-import { Folder, Plus, Search, Settings } from 'lucide-react';
+import { Folder, Plus, Search, LogIn, LogOut } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface SidebarProps {
   conversations: Conversation[];
   currentId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
+  isGuest: boolean;
 }
 
-export function Sidebar({ conversations, currentId, onSelect, onNew }: SidebarProps) {
+export function Sidebar({ conversations, currentId, onSelect, onNew, isGuest }: SidebarProps) {
   return (
     <div style={{
       width: '280px',
@@ -83,22 +85,29 @@ export function Sidebar({ conversations, currentId, onSelect, onNew }: SidebarPr
       </div>
 
       {/* Footer */}
-      <div style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button className="btn-clean" title="Configurações">
-          <Settings size={20} />
-        </button>
-        <button 
-            className="btn-clean" 
-            title="Sair da Conta"
-            onClick={async () => {
-                const { supabase } = await import('../lib/supabase'); // Dynamic import to avoid circular dep if needed, or just import at top
-                await supabase.auth.signOut();
-                window.location.reload(); // Force reload to trigger auth check in page.tsx
-            }}
-            style={{ color: '#ef4444' }}
-        >
-          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>SAIR</span>
-        </button>
+      <div style={{ padding: '1rem', borderTop: '1px solid var(--border-color)' }}>
+         {isGuest ? (
+             <button 
+                className="btn-accent" 
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => window.location.href = '/login'}
+            >
+                <LogIn size={16} style={{ marginRight: '0.5rem' }} /> Entrar
+            </button>
+         ) : (
+            <button 
+                className="btn-clean" 
+                title="Sair da Conta"
+                onClick={async () => {
+                    await supabase.auth.signOut();
+                    window.location.reload(); 
+                }}
+                style={{ color: '#ef4444', width: '100%', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', padding: '0.8rem' }}
+            >
+                <LogOut size={16} style={{ marginRight: '0.5rem' }} /> 
+                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Sair</span>
+            </button>
+         )}
       </div>
     </div>
   );

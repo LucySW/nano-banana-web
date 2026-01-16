@@ -415,30 +415,46 @@ export default function Home() {
         currentId={currentId} 
         onSelect={handleSelectProject} 
         onNew={handleNewConversation} 
+        isGuest={isGuest}
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-deep)', position: 'relative' }}>
         
-        {/* Guest Banner */}
+        {/* Premium Guest Status Bar */}
         {isGuest && (
             <div style={{ 
-                background: 'rgba(239, 68, 68, 0.1)', 
-                borderBottom: '1px solid rgba(239, 68, 68, 0.2)', 
-                padding: '0.5rem 1rem', 
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                zIndex: 50,
+                background: 'rgba(0, 0, 0, 0.4)', 
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)', 
+                borderRadius: '99px',
+                padding: '0.4rem 0.5rem 0.4rem 1rem', 
                 display: 'flex', 
                 alignItems: 'center', 
-                justifyContent: 'space-between' 
+                gap: '1rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
-                <span style={{ fontSize: '0.85rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Cloud size={16} /> Modo Convidado: Dados salvos apenas neste computador.
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#fbbf24' }}></div>
+                    Convidado
                 </span>
                 <button 
                     onClick={() => router.push('/login')}
                     className="btn-accent"
-                    style={{ padding: '0.3rem 0.8rem', fontSize: '0.8rem', height: 'auto', background: 'var(--accent-primary)' }}
+                    style={{ 
+                        padding: '0.3rem 0.8rem', 
+                        fontSize: '0.75rem', 
+                        height: 'auto', 
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '99px',
+                        color: 'white'
+                    }}
                 >
-                    <LogIn size={14} style={{ marginRight: '0.4rem' }} />
-                    Entrar e Sincronizar
+                    Salvar na Nuvem
                 </button>
             </div>
         )}

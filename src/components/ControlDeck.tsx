@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { Settings, Save, Monitor, Square, Smartphone, Film, Disc } from 'lucide-react'; // Example icons
+import { Save } from 'lucide-react';
 
 interface ControlDeckProps {
   ratio: string;
@@ -19,48 +19,87 @@ export function ControlDeck({
 
   const [showSaveMenu, setShowSaveMenu] = useState(false);
 
+  // Custom SVG Icons for Aspect Ratios
   const ratios = [
-    { value: "16:9", label: "Cinema", icon: <Monitor size={16} /> },
-    { value: "1:1", label: "Square", icon: <Square size={16} /> },
-    { value: "9:16", label: "Story", icon: <Smartphone size={16} /> },
-    { value: "21:9", label: "Wide", icon: <Film size={16} /> },
+    { value: "21:9", label: "Ultrawide", width: 28, height: 12 },
+    { value: "16:9", label: "Cinema", width: 24, height: 13.5 },
+    { value: "3:2", label: "Classic", width: 21, height: 14 },
+    { value: "4:3", label: "Photo", width: 20, height: 15 },
+    { value: "1:1", label: "Square", width: 16, height: 16 },
+    { value: "4:5", label: "Portrait", width: 16, height: 20 }, 
+    { value: "9:16", label: "Story", width: 11.25, height: 20 }, 
   ];
 
   return (
     <div style={{ 
       display: 'flex', 
       alignItems: 'center', 
-      gap: '1rem', 
-      marginBottom: '1rem',
-      padding: '0.5rem',
+      gap: '1.5rem', 
+      marginBottom: '1.5rem',
+      padding: '0.75rem 1rem',
       background: 'rgba(255,255,255,0.03)',
-      borderRadius: '12px',
-      border: '1px solid var(--border-color)'
+      backdropFilter: 'blur(10px)',
+      borderRadius: '16px',
+      border: '1px solid var(--border-color)',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
     }}>
       
       {/* Ratio Selector */}
-      <div style={{ display: 'flex', gap: '0.25rem', background: 'var(--bg-input)', padding: '4px', borderRadius: '8px' }}>
+      <div style={{ display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '4px' }}>
         {ratios.map(r => (
             <button
                 key={r.value}
                 onClick={() => setRatio(r.value)}
-                title={r.label}
                 style={{
-                    background: ratio === r.value ? 'var(--accent-primary)' : 'transparent',
-                    color: ratio === r.value ? 'white' : 'var(--text-dim)',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '6px',
-                    cursor: 'pointer',
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    gap: '4px',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    opacity: ratio === r.value ? 1 : 0.5,
+                    transition: 'all 0.2s',
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    minWidth: '40px'
                 }}
             >
-                {r.icon}
+                {/* Text Label */}
+                <span style={{ 
+                    fontSize: '0.7rem', 
+                    fontWeight: 600, 
+                    color: ratio === r.value ? 'var(--accent-primary)' : 'var(--text-dim)',
+                    whiteSpace: 'nowrap'
+                }}>
+                    {r.value}
+                </span>
+
+                {/* SVG Icon */}
+                <div style={{ 
+                    width: '32px', 
+                    height: '24px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    background: ratio === r.value ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'transparent',
+                    borderRadius: '4px'
+                }}>
+                    <svg width="32" height="24" viewBox="0 0 32 24" style={{ fill: 'none', stroke: ratio === r.value ? 'var(--accent-primary)' : 'currentColor', strokeWidth: 2 }}>
+                        <rect 
+                            x={(32 - r.width) / 2} 
+                            y={(24 - r.height) / 2} 
+                            width={r.width} 
+                            height={r.height} 
+                            rx="2"
+                        />
+                    </svg>
+                </div>
             </button>
         ))}
       </div>
+
+      <div style={{ width: '1px', height: '30px', background: 'var(--border-color)', opacity: 0.5 }}></div>
 
       {/* Resolution Selector */}
       <div style={{ position: 'relative' }}>
@@ -70,12 +109,13 @@ export function ControlDeck({
             style={{
                 background: 'var(--bg-input)',
                 color: 'var(--text-primary)',
-                border: 'none',
-                padding: '6px 12px',
+                border: '1px solid var(--border-color)',
+                padding: '8px 12px',
                 borderRadius: '8px',
                 fontSize: '0.85rem',
                 cursor: 'pointer',
-                outline: 'none'
+                outline: 'none',
+                minWidth: '100px'
             }}
           >
               <option value="1K">1K • Fast</option>
@@ -99,12 +139,13 @@ export function ControlDeck({
             color: 'var(--success-color)', 
             fontSize: '0.8rem', 
             cursor: 'help',
-            padding: '6px 12px',
+            padding: '8px 12px',
             background: 'var(--bg-input)',
-            borderRadius: '8px'
+            borderRadius: '8px',
+            border: '1px solid transparent'
         }}>
             <Save size={16} />
-            <span style={{ fontWeight: 600 }}>Auto-Save ON</span>
+            <span style={{ fontWeight: 600 }}>Auto-Save</span>
         </div>
 
         {/* Hover Menu */}
