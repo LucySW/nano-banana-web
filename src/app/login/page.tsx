@@ -50,67 +50,128 @@ export default function LoginPage() {
       justifyContent: 'center',
       height: '100vh',
       background: 'var(--bg-deep)',
-      color: 'var(--text-primary)'
+      color: 'var(--text-primary)',
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* Background Ambience */}
       <div style={{
-        background: 'var(--bg-card)',
-        padding: '2rem',
-        borderRadius: '1rem',
+          position: 'absolute',
+          top: '-20%',
+          left: '-10%',
+          width: '50vw',
+          height: '50vw',
+          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)',
+          filter: 'blur(80px)',
+          zIndex: 0
+      }}></div>
+
+      <div className="glass-panel" style={{
+        padding: '3rem 2rem',
+        borderRadius: '24px',
         width: '100%',
-        maxWidth: '400px',
-        border: '1px solid var(--border-color)',
-        boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
+        maxWidth: '420px',
+        zIndex: 10,
+        backdropFilter: 'blur(30px)',
+        border: '1px solid rgba(255,255,255,0.05)'
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <Sparkles size={48} color="var(--accent-primary)" style={{ marginBottom: '1rem' }} />
-          <h1>Romsoft Studio AI</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Sua conta, seus projetos, em qualquer lugar.</p>
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+           {/* Breathing Logo */}
+           <div 
+             className="breathing-logo"
+             style={{ 
+                width: '80px', 
+                height: '80px', 
+                background: 'url(/logo-r.png)', 
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center',
+                margin: '0 auto 1.5rem auto',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+             }}
+          >
+             {/* Fallback */}
+             <Sparkles size={40} color="var(--accent-primary)" style={{ opacity: 0 }} /> 
+          </div>
+
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 300, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Romsoft Studio AI</h1>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Sua porta de entrada para a criatividade infinita.</p>
         </div>
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              padding: '0.8rem',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              color: 'white',
-              outline: 'none'
-            }}
-          />
-          <input
-            type="password"
-            placeholder="Senha"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={{
-              padding: '0.8rem',
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              color: 'white',
-              outline: 'none'
-            }}
-          />
+          <div style={{ position: 'relative' }}>
+             <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px',
+                  color: 'white',
+                  outline: 'none',
+                  fontSize: '0.95rem',
+                  transition: 'all 0.3s ease'
+                }}
+                className="input-glow"
+                onFocus={(e) => e.target.style.borderColor = 'var(--rgb-blue)'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              />
+          </div>
+          
+          <div style={{ position: 'relative' }}>
+              <input
+                type="password"
+                placeholder="Senha"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  background: 'rgba(0,0,0,0.2)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '12px',
+                  color: 'white',
+                  outline: 'none',
+                  fontSize: '0.95rem',
+                  transition: 'all 0.3s ease'
+                }}
+                className="input-glow"
+                onFocus={(e) => e.target.style.borderColor = 'var(--rgb-blue)'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
+              />
+          </div>
 
           <button 
             type="submit" 
             disabled={loading}
-            className="btn-accent"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '1rem' }}
+            className="btn-primary-action"
+            style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                gap: '0.5rem', 
+                marginTop: '1rem',
+                width: '100%',
+                padding: '1rem',
+                borderRadius: '12px',
+                background: 'linear-gradient(45deg, var(--rgb-blue), var(--accent-primary))',
+                color: 'white',
+                fontWeight: 600,
+                letterSpacing: '0.05em'
+            }}
           >
-            {loading ? 'Carregando...' : 'Entrar'} <ArrowRight size={18} />
+            {loading ? 'Inicializando...' : 'Entrar'} <ArrowRight size={18} />
           </button>
         </form>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0' }}>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
-            <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>OU</span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '2rem 0' }}>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
+            <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ou continuar com</span>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
         </div>
 
         <button 
@@ -121,38 +182,43 @@ export default function LoginPage() {
                     options: {
                         redirectTo: `${window.location.origin}`,
                         queryParams: {
-                            access_type: 'offline', // Request Refresh Token
+                            access_type: 'offline', 
                             prompt: 'consent',
                             scope: 'https://www.googleapis.com/auth/drive.file email profile openid'
                         }
                     }
                 });
                 if (error) alert(error.message);
-                // Note: OAuth redirects away, so setLoading(false) might not be needed if success
             }}
             className="btn-clean"
             style={{ 
                 width: '100%', 
-                background: 'white', 
-                color: 'black', 
+                background: 'rgba(255,255,255,0.05)', 
+                color: 'white', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
-                gap: '0.5rem',
-                fontWeight: 600
+                gap: '0.8rem',
+                padding: '1rem',
+                borderRadius: '12px',
+                fontWeight: 500,
+                border: '1px solid rgba(255,255,255,0.1)',
+                transition: 'all 0.3s ease'
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
         >
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="G" style={{ width: '20px' }} />
-            Continuar com Google
+            Google
         </button>
 
-        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
           <button 
             onClick={handleSignUp}
             className="btn-clean"
-            style={{ fontSize: '0.9rem' }}
+            style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}
           >
-            Não tem conta? <span style={{ color: 'var(--accent-primary)' }}>Criar Conta</span>
+            Ainda não tem acesso? <span style={{ color: 'var(--rgb-green)', marginLeft: '0.3rem' }}>Criar Conta</span>
           </button>
         </div>
       </div>

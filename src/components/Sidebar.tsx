@@ -15,97 +15,111 @@ interface SidebarProps {
 export function Sidebar({ conversations, currentId, onSelect, onNew, isGuest }: SidebarProps) {
   return (
     <div style={{
-      width: '280px',
+      width: '260px',
       background: 'var(--bg-sidebar)',
-      borderRight: '1px solid var(--border-color)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
       display: 'flex',
       flexDirection: 'column',
-      height: '100%'
+      height: '100%',
+      zIndex: 20,
+      borderRight: '1px solid rgba(255,255,255,0.02)'
     }}>
       {/* Header */}
-      <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Conversas
+      <div style={{ padding: '2rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+            Projetos
           </span>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button className="btn-clean" onClick={onNew} title="Nova Conversa">
-              <Plus size={18} />
-            </button>
-            <button className="btn-clean" title="Pesquisar">
-              <Search size={18} />
-            </button>
-          </div>
-        </div>
+          <button className="btn-clean" onClick={onNew} title="Novo Projeto">
+               <Plus size={16} />
+          </button>
       </div>
 
       {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1rem' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 1rem' }}>
         {conversations.length === 0 && (
-          <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '2rem 0', fontSize: '0.9rem' }}>
-            Nenhuma conversa ainda.
+          <div style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '2rem 0', fontSize: '0.8rem', opacity: 0.5 }}>
+            Vazio criativo
           </div>
         )}
         
-        {conversations.map(conv => (
-          <div 
-            key={conv.id}
-            onClick={() => onSelect(conv.id)}
-            style={{
-              padding: '0.8rem',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              marginBottom: '0.5rem',
-              background: conv.id === currentId ? 'rgba(139, 92, 246, 0.1)' : 'transparent',
-              borderLeft: conv.id === currentId ? '3px solid var(--accent-primary)' : '3px solid transparent',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.8rem'
-            }}
-          >
-            <Folder size={18} color={conv.id === currentId ? 'var(--accent-primary)' : 'var(--text-dim)'} />
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ 
-                color: conv.id === currentId ? 'var(--text-primary)' : 'var(--text-secondary)',
-                fontWeight: conv.id === currentId ? 500 : 400,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                fontSize: '0.95rem'
-              }}>
-                {conv.title || "Nova Conversa"}
+        {conversations.map(conv => {
+            const isActive = conv.id === currentId;
+            return (
+              <div 
+                key={conv.id}
+                onClick={() => onSelect(conv.id)}
+                style={{
+                  padding: '0.8rem 1rem',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  marginBottom: '0.2rem',
+                  position: 'relative',
+                  transition: 'all 0.4s ease',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  opacity: isActive ? 1 : 0.5,
+                  background: isActive ? 'linear-gradient(90deg, rgba(255,255,255,0.03), transparent)' : 'transparent',
+                }}
+                className={!isActive ? "hover:opacity-100 hover:text-white" : ""}
+                onMouseEnter={(e) => {
+                    if(!isActive) e.currentTarget.style.opacity = '1';
+                    e.currentTarget.style.textShadow = '0 0 15px var(--rgb-blue)';
+                }}
+                onMouseLeave={(e) => {
+                    if(!isActive) e.currentTarget.style.opacity = '0.5';
+                    e.currentTarget.style.textShadow = 'none';
+                }}
+              >
+                {/* Active Indicator Bar */}
+                {isActive && (
+                    <div style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: '15%',
+                        bottom: '15%',
+                        width: '2px',
+                        background: 'var(--rgb-green)',
+                        boxShadow: '0 0 10px var(--rgb-green)',
+                        borderRadius: '0 2px 2px 0'
+                    }} />
+                )}
+
+                <div style={{ 
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    fontSize: '0.85rem',
+                    fontWeight: 300,
+                    letterSpacing: '0.05em'
+                }}>
+                    {conv.title || "Untitled Project"}
+                </div>
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                {new Date(conv.createdAt).toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-        ))}
+            );
+        })}
       </div>
 
       {/* Footer */}
-      <div style={{ padding: '1rem', borderTop: '1px solid var(--border-color)' }}>
+      <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.02)' }}>
          {isGuest ? (
              <button 
-                className="btn-accent" 
-                style={{ width: '100%', justifyContent: 'center' }}
+                className="btn-clean" 
+                style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--text-dim)', fontSize: '0.8rem' }}
                 onClick={() => window.location.href = '/login'}
             >
-                <LogIn size={16} style={{ marginRight: '0.5rem' }} /> Entrar
+                <LogIn size={14} style={{ marginRight: '0.8rem' }} /> Login
             </button>
          ) : (
             <button 
                 className="btn-clean" 
-                title="Sair da Conta"
+                title="Sair"
                 onClick={async () => {
                     await supabase.auth.signOut();
                     window.location.reload(); 
                 }}
-                style={{ color: '#ef4444', width: '100%', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', padding: '0.8rem' }}
+                style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--text-dim)', fontSize: '0.8rem' }}
             >
-                <LogOut size={16} style={{ marginRight: '0.5rem' }} /> 
-                <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Sair</span>
+                <LogOut size={14} style={{ marginRight: '0.8rem' }} /> Sair
             </button>
          )}
       </div>
