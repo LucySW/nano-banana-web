@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
-import { Save, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, ChevronDown, ChevronUp, Key, Check, X, Loader2 } from 'lucide-react';
 
 interface ControlDeckProps {
   ratio: string;
@@ -11,19 +11,28 @@ interface ControlDeckProps {
   setSmartSaveMode: (mode: 'flat' | 'project') => void;
   isDriveConnected: boolean;
   onConnectDrive: () => void;
+  apiKey: string | null;
+  setApiKey: (key: string | null) => void;
 }
 
 export function ControlDeck({ 
   ratio, setRatio, 
   resolution, setResolution,
   smartSaveMode, setSmartSaveMode,
-  isDriveConnected, onConnectDrive
+  isDriveConnected, onConnectDrive,
+  apiKey, setApiKey
 }: ControlDeckProps) {
 
   const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showRatioMenu, setShowRatioMenu] = useState(false);
+  const [showKeyMenu, setShowKeyMenu] = useState(false);
+  
+  const [tempKey, setTempKey] = useState("");
+  const [keyStatus, setKeyStatus] = useState<'idle' | 'validating' | 'success' | 'error'>('idle');
+
   const ratioMenuRef = useRef<HTMLDivElement>(null);
   const saveMenuRef = useRef<HTMLDivElement>(null);
+  const keyMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -33,10 +42,36 @@ export function ControlDeck({
       if (saveMenuRef.current && !saveMenuRef.current.contains(event.target as Node)) {
         setShowSaveMenu(false);
       }
+      if (keyMenuRef.current && !keyMenuRef.current.contains(event.target as Node)) {
+          setShowKeyMenu(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleKeySubmit = async () => {
+      setKeyStatus('validating');
+      // Mock validation (or real if we had a check endpoint)
+      // Assuming non-empty is 'valid' for now, or check generic structure
+      setTimeout(() => {
+          if (tempKey.trim().length > 10) {
+              setKeyStatus('success');
+              setTimeout(() => {
+                  setApiKey(tempKey.trim());
+                  localStorage.setItem("romsoft_api_key", tempKey.trim());
+                  setShowKeyMenu(false);
+                  setKeyStatus('idle');
+              }, 1000);
+          } else {
+              setKeyStatus('error');
+              setTimeout(() => {
+                  setTempKey("");
+                  setKeyStatus('idle');
+              }, 1000);
+          }
+      }, 1500);
+  };
 
   // Updated Ratios per User Request (Generic SVG dimensions approximated)
   const ratios = [
@@ -205,6 +240,106 @@ export function ControlDeck({
 
       <div style={{ flex: 1 }}></div>
 
+      {/* API Key Widget */}
+      <div 
+        style={{ position: 'relative' }}
+        ref={keyMenuRef}
+        onMouseEnter={() => setShowKeyMenu(true)}
+        onMouseLeave={() => !keyMenuRef.current?.contains(document.activeElement) && setShowKeyMenu(false)}
+      >
+          <button
+             style={{
+                 background: apiKey ? 'rgba(52, 168, 83, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                 border: apiKey ? '1px solid rgba(52, 168, 83, 0.3)' : '1px solid rgba(239, 68, 68, 0.5)',
+                 color: apiKey ? '#34A853' : '#ef4444',
+                 width: '40px', 
+                 height: '40px',
+                 borderRadius: '50%',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 cursor: 'pointer',
+                 animation: !apiKey ? 'pulse-red 2s infinite' : 'none',
+                 boxShadow: !apiKey ? '0 0 10px rgba(239, 68, 68, 0.3)' : 'none',
+                 transition: 'all 0.3s'
+             }}
+             title={apiKey ? "API Key Configurada" : "Configurar API Key"}
+          >
+              <Key size={18} />
+          </button>
+
+          {/* Hover Menu */}
+          {showKeyMenu && (
+              <div style={{
+                  position: 'absolute',
+                  top: '110%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  padding: '1rem',
+                  boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                  zIndex: 101,
+                  minWidth: '280px',
+                  animation: 'fadeIn 0.2s ease'
+              }}>
+                 {apiKey ? (
+                     <div style={{ textAlign: 'center' }}>
+                         <div style={{ color: '#34A853', marginBottom: '8px', fontSize: '0.9rem', fontWeight: 600 }}>API Conectada</div>
+                         <button 
+                            className="btn-clean" 
+                            style={{ color: 'var(--text-dim)', fontSize: '0.75rem', margin: '0 auto', textDecoration: 'underline' }}
+                            onClick={() => { setApiKey(null); localStorage.removeItem("romsoft_api_key"); }}
+                         >
+                             Desconectar
+                         </button>
+                     </div>
+                 ) : (
+                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                         <input 
+                            type="text" 
+                            placeholder="sk-..."
+                            value={tempKey}
+                            onChange={(e) => setTempKey(e.target.value)}
+                            style={{
+                                flex: 1,
+                                background: 'rgba(0,0,0,0.3)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                padding: '8px',
+                                color: 'white',
+                                fontSize: '0.8rem',
+                                outline: 'none'
+                            }}
+                         />
+                         <button 
+                            onClick={handleKeySubmit}
+                            disabled={keyStatus === 'validating'}
+                            style={{
+                                background: 'var(--rgb-blue)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                width: '36px',
+                                height: '36px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer'
+                            }}
+                         >
+                             {keyStatus === 'validating' ? <Loader2 size={16} className="spin" /> : 
+                              keyStatus === 'success' ? <Check size={16} /> :
+                              keyStatus === 'error' ? <X size={16} /> :
+                              <Check size={16} />}
+                         </button>
+                     </div>
+                 )}
+              </div>
+          )}
+      </div>
+
       {/* Drive Save Widget */}
       <div 
         style={{ position: 'relative' }}
@@ -216,26 +351,59 @@ export function ControlDeck({
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '0.5rem', 
-                color: isDriveConnected ? 'var(--text-primary)' : 'var(--text-secondary)', 
+                color: isDriveConnected ? 'var(--text-primary)' : '#ef4444', 
                 fontSize: '0.8rem', 
                 cursor: 'pointer',
                 padding: '6px 16px',
-                background: showSaveMenu ? 'var(--bg-input)' : (isDriveConnected ? 'rgba(52, 168, 83, 0.1)' : 'transparent'), 
+                background: showSaveMenu ? 'var(--bg-input)' : (isDriveConnected ? 'rgba(52, 168, 83, 0.1)' : 'rgba(239, 68, 68, 0.1)'), 
                 borderRadius: '99px',
-                border: isDriveConnected ? '1px solid rgba(52, 168, 83, 0.3)' : '1px solid var(--border-color)',
-                transition: 'all 0.2s'
+                border: isDriveConnected ? '1px solid rgba(52, 168, 83, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+                transition: 'all 0.2s',
+                position: 'relative'
             }}
-            title={isDriveConnected ? "Salvo no Drive" : "Conectar Drive"}
+            title={isDriveConnected ? "Salvo no Drive" : "Não está salvando"}
         >
             {isDriveConnected ? (
-                 // Drive Icon (Active)
-                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34A853" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 22h20L12 2z"/><path d="M2 22h20"/><path d="M12 2L7 12"/></svg>
+                 // Drive Icon (Green) - Using SVG for branding
+                 <svg width="18" height="18" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                    <path d="M43.65 25l13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2l-13.75 23.8h27.5z" fill="#00ac47"/>
+                    <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l3.85-6.65c.8-1.4 1.2-2.95 1.2-4.5h-27.5l13.75 23.8c1.55 0 3.1-.4 4.4-1.2z" fill="#ea4335"/>
+                    <path d="M43.65 25l-13.75 23.8-13.75 23.8h13.75l13.75-23.8z" fill="#0055aa"/>
+                    <path d="M73.55 76.8l-13.75-23.8h-27.5l13.75 23.8z" fill="#00832d"/>
+                    <path d="M43.65 25l13.75 23.8 13.75-23.8h-27.5z" fill="#2684fc"/>
+                 </svg>
             ) : (
-                 // Drive Icon (Inactive)
-                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 22h20L12 2z"/><path d="M2 22h20"/><path d="M12 2L7 12"/></svg>
+                 // Disconnected Icon (Red with slash)
+                 <div style={{ position: 'relative' }}>
+                    <Loader2 size={16} className={isDriveConnected ? "" : "hidden"} /> 
+                    {/* Fallback cloud-off or similar */}
+                    <div style={{ width: '18px', height: '18px', border: '2px solid #ef4444', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                         <div style={{ width: '100%', height: '2px', background: '#ef4444', transform: 'rotate(45deg)' }}></div>
+                    </div>
+                 </div>
             )}
             
-            <span style={{ fontWeight: 600 }}>{isDriveConnected ? "Drive Sync" : "Conectar Drive"}</span>
+            <span style={{ fontWeight: 600 }}>{isDriveConnected ? "Drive" : "Sem Salvar"}</span>
+            
+            {!isDriveConnected && (
+                <div style={{
+                    position: 'absolute',
+                    top: '120%',
+                    right: 0,
+                    background: '#ef4444',
+                    color: 'white',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    whiteSpace: 'nowrap',
+                    animation: 'fadeOut 5s forwards', // Disappears after 5s
+                    pointerEvents: 'none'
+                }}>
+                    Não está salvando!
+                </div>
+            )}
+
             {isDriveConnected && (showSaveMenu ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
         </button>
 

@@ -435,53 +435,7 @@ export default function Home() {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-deep)', position: 'relative' }}>
         
-        {/* Top Right Utilities (Minimalist) */}
-        <div style={{ 
-            position: 'absolute',
-            top: '1.5rem',
-            right: '2rem',
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1.5rem'
-        }}>
-            {/* Cloud Status */}
-            <div title={syncing ? "Sincronizando..." : "Nuvem Salva"} style={{ opacity: syncing ? 1 : 0.4, transition: 'opacity 0.3s' }}>
-                <Cloud size={18} color={syncing ? 'var(--rgb-blue)' : 'var(--text-secondary)'} />
-            </div>
-
-            {/* Profile / Guest */}
-            {isGuest ? (
-                <button 
-                    onClick={() => router.push('/login')}
-                    className="btn-clean"
-                    style={{ 
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        padding: '0.4rem 1rem',
-                        fontSize: '0.75rem',
-                        borderRadius: '99px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        background: 'rgba(0,0,0,0.3)',
-                        color: 'var(--text-secondary)'
-                    }}
-                >
-                    <div style={{ width: '6px', height: '6px', background: '#fbbf24', borderRadius: '50%' }}></div>
-                    Convidado (Entrar)
-                </button>
-            ) : (
-                <button className="btn-clean" title={userSession?.user?.email} style={{ padding: 0, borderRadius: '50%', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    {userSession?.user?.user_metadata?.avatar_url ? (
-                        <img src={userSession.user.user_metadata.avatar_url} alt="User" style={{ width: '32px', height: '32px' }} />
-                    ) : (
-                        <div style={{ width: '32px', height: '32px', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <User size={18} />
-                        </div>
-                    )}
-                </button>
-            )}
-        </div>
+        {/* Top Right Utilities (REMOVED) */}
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 15%', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '200px' }}>
           {(!activeConversation || activeConversation.messages.length === 0) ? (
@@ -572,6 +526,7 @@ export default function Home() {
             smartSaveMode={smartSaveMode} setSmartSaveMode={setSmartSaveMode}
             isDriveConnected={!!(userSession?.provider_token)}
             onConnectDrive={handleConnectDrive}
+            apiKey={apiKey} setApiKey={setApiKey}
         />
         
       </div>

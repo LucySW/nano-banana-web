@@ -28,9 +28,9 @@ export function Sidebar({ conversations, currentId, onSelect, onNew, isGuest }: 
       {/* Header */}
       <div style={{ padding: '2rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-            Projetos
+            Conversas
           </span>
-          <button className="btn-clean" onClick={onNew} title="Novo Projeto">
+          <button className="btn-clean" onClick={onNew} title="Nova Conversa">
                <Plus size={16} />
           </button>
       </div>
@@ -103,11 +103,21 @@ export function Sidebar({ conversations, currentId, onSelect, onNew, isGuest }: 
       <div style={{ padding: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.02)' }}>
          {isGuest ? (
              <button 
-                className="btn-clean" 
-                style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--text-dim)', fontSize: '0.8rem' }}
+                className="btn-primary" 
+                style={{ 
+                    width: '100%', 
+                    justifyContent: 'center', 
+                    fontSize: '0.8rem',
+                    padding: '10px',
+                    borderRadius: '8px',
+                    background: 'var(--rgb-blue)',
+                    color: '#fff',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                }}
                 onClick={() => window.location.href = '/login'}
+                title="Fazer Login para salvar histórico"
             >
-                <LogIn size={14} style={{ marginRight: '0.8rem' }} /> Login
+                <LogIn size={14} style={{ marginRight: '0.8rem' }} /> Fazer Login
             </button>
          ) : (
             <button 
