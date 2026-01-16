@@ -446,8 +446,8 @@ export default function Home() {
             gap: '1.5rem'
         }}>
             {/* Cloud Status */}
-            <div title={syncing ? "Sincronizando..." : "Nuvem Salva"} style={{ opacity: syncing ? 1 : 0.5, transition: 'opacity 0.3s' }}>
-                <Cloud size={20} color={syncing ? 'var(--rgb-blue)' : 'var(--text-secondary)'} />
+            <div title={syncing ? "Sincronizando..." : "Nuvem Salva"} style={{ opacity: syncing ? 1 : 0.4, transition: 'opacity 0.3s' }}>
+                <Cloud size={18} color={syncing ? 'var(--rgb-blue)' : 'var(--text-secondary)'} />
             </div>
 
             {/* Profile / Guest */}
@@ -463,33 +463,40 @@ export default function Home() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        background: 'rgba(0,0,0,0.3)'
+                        background: 'rgba(0,0,0,0.3)',
+                        color: 'var(--text-secondary)'
                     }}
                 >
-                    <div style={{ width: '8px', height: '8px', background: '#fbbf24', borderRadius: '50%' }}></div>
-                    Convidado
+                    <div style={{ width: '6px', height: '6px', background: '#fbbf24', borderRadius: '50%' }}></div>
+                    Convidado (Entrar)
                 </button>
             ) : (
-                <button className="btn-clean">
-                    <User size={20} />
+                <button className="btn-clean" title={userSession?.user?.email} style={{ padding: 0, borderRadius: '50%', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    {userSession?.user?.user_metadata?.avatar_url ? (
+                        <img src={userSession.user.user_metadata.avatar_url} alt="User" style={{ width: '32px', height: '32px' }} />
+                    ) : (
+                        <div style={{ width: '32px', height: '32px', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <User size={18} />
+                        </div>
+                    )}
                 </button>
             )}
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem', paddingBottom: '200px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 15%', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '200px' }}>
           {(!activeConversation || activeConversation.messages.length === 0) ? (
-            <div style={{ marginTop: '30vh', textAlign: 'center', opacity: 1 }}>
+            <div style={{ marginTop: '20vh', textAlign: 'center', opacity: 1 }}>
                {/* Breathing Logo Area */}
               <div 
-                 className="breathing-logo glow-animated"
+                 className="breathing-logo rgb-flow-border"
                  style={{ 
-                    width: '120px', 
-                    height: '120px', 
+                    width: '100px', 
+                    height: '100px', 
                     background: 'url(/logo-r.png)', 
                     backgroundSize: 'contain',
                     backgroundRepeat: 'no-repeat',
                     backgroundPosition: 'center',
-                    margin: '0 auto 2rem auto',
+                    margin: '0 auto 1.5rem auto',
                     borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center'
                  }}

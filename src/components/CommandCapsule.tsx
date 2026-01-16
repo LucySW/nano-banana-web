@@ -27,14 +27,15 @@ export function CommandCapsule({
   isDriveConnected, onConnectDrive, smartSaveMode, setSmartSaveMode
 }: CommandCapsuleProps) {
   
-  const [showSettings, setShowSettings] = useState(false);
-  
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onGenerate();
     }
   };
+
+  const ratios = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9", "5:4"];
+  const resolutions = ["1K", "2K", "4K"];
 
   return (
     <div className="capsule-blur" style={{
@@ -43,33 +44,23 @@ export function CommandCapsule({
       left: '50%',
       transform: 'translateX(-50%)',
       width: '90%',
-      maxWidth: '800px',
-      borderRadius: '24px',
-      padding: '0.8rem 1rem',
+      maxWidth: '700px', // Slightly tighter
+      borderRadius: '99px', // Fully rounded capsule
+      padding: '0.6rem 0.8rem',
       display: 'flex',
       alignItems: 'center',
-      gap: '1rem',
+      gap: '0.8rem',
       zIndex: 50,
-      transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
       border: '1px solid rgba(255,255,255,0.08)'
     }}>
       
-      {/* Loading Bar (Top Border) */}
+      {/* Loading Bar (Top) */}
       {isGenerating && (
-        <div className="rgb-loading-bar" style={{ position: 'absolute', top: 0, left: '20px', right: '20px', borderRadius: '2px' }} />
+        <div className="rgb-loading-bar" style={{ position: 'absolute', top: 0, left: '20px', right: '20px', borderRadius: '2px', opacity: 0.8 }} />
       )}
 
-      {/* Settings Toggle (Left) */}
-      <button 
-        className="btn-clean" 
-        onClick={() => setShowSettings(!showSettings)}
-        style={{ color: showSettings ? 'var(--rgb-blue)' : 'var(--text-secondary)' }}
-      >
-        <Settings size={20} />
-      </button>
-
-      {/* Input Field (Center) */}
-      <div style={{ flex: 1, position: 'relative' }}>
+      {/* Input Field (Expanded) */}
+      <div style={{ flex: 1, paddingLeft: '1rem' }}>
          <input
            type="text"
            value={prompt}
@@ -81,153 +72,117 @@ export function CommandCapsule({
              background: 'transparent',
              border: 'none',
              color: 'white',
-             fontSize: '1rem',
+             fontSize: '0.95rem',
              fontWeight: 300,
              outline: 'none',
              letterSpacing: '0.02em'
            }}
-           className="placeholder:text-gray-600"
+           autoFocus
          />
       </div>
 
-      {/* Inline Quick Settings (Visible when typing presumably, or always?) User said "Selectors integrated" */}
-      {/* I will keep them minimal text buttons if !showSettings, or expanded logic */}
-      
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '1rem' }}>
-         {/* Ratio Mini-Selector */}
-         <button 
-           className="btn-clean" 
-           onClick={() => setRatio(ratio === "16:9" ? "9:16" : ratio === "9:16" ? "1:1" : "16:9")} // Quick toggle cycle for essential ratios
-           style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)', minWidth: '40px' }}
-           title="Alternar Proporção"
-         >
-           {ratio}
-         </button>
+      {/* Vertical Divider */}
+      <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)' }}></div>
 
-         {/* Res Mini-Selector */}
-         <button 
-           className="btn-clean" 
-           onClick={() => setResolution(resolution === "1K" ? "2K" : "1K")} 
-           style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-dim)', minWidth: '30px' }}
-           title="Resolução"
-         >
-           {resolution}
-         </button>
+      {/* --- INLINE CONTROLS --- */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+         
+         {/* Ratio Hover Menu */}
+         <div className="hover-menu-trigger">
+            <button className="btn-clean" style={{ fontSize: '0.8rem', fontWeight: 500, minWidth: '45px', color: 'var(--text-secondary)' }}>
+                {ratio}
+            </button>
+            <div className="hover-menu-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', width: '180px' }}>
+                {ratios.map(r => (
+                    <button 
+                        key={r} 
+                        onClick={() => setRatio(r)}
+                        style={{
+                            background: ratio === r ? 'var(--rgb-blue)' : 'transparent',
+                            color: ratio === r ? '#000' : '#fff',
+                            border: 'none', padding: '6px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer'
+                        }}
+                    >
+                        {r}
+                    </button>
+                ))}
+            </div>
+         </div>
+
+         {/* Resolution Hover Menu */}
+         <div className="hover-menu-trigger">
+            <button className="btn-clean" style={{ fontSize: '0.8rem', fontWeight: 500, minWidth: '35px', color: 'var(--text-secondary)' }}>
+                {resolution}
+            </button>
+            <div className="hover-menu-content">
+                {resolutions.map(r => (
+                    <button 
+                        key={r} 
+                        onClick={() => setResolution(r)}
+                        style={{
+                            background: resolution === r ? 'var(--rgb-green)' : 'transparent',
+                            color: resolution === r ? '#000' : '#fff',
+                            border: 'none', padding: '6px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left'
+                        }}
+                    >
+                        {r}
+                    </button>
+                ))}
+            </div>
+         </div>
+
+         {/* Drive / Settings (Consolidated Icon) */}
+         <div className="hover-menu-trigger">
+             <button className="btn-clean" style={{ color: isDriveConnected ? 'var(--rgb-green)' : 'var(--text-secondary)' }}>
+                 <HardDrive size={18} />
+             </button>
+             <div className="hover-menu-content" style={{ width: '200px' }}>
+                {!isDriveConnected ? (
+                     <button onClick={onConnectDrive} style={{ width: '100%', padding: '8px', background: 'rgba(52, 168, 83, 0.2)', color: '#4ade80', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <HardDrive size={14} /> Conectar Google Drive
+                     </button>
+                ) : (
+                    <>
+                        <div style={{ fontSize: '0.7rem', color: '#4ade80', padding: '4px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '4px' }}>Drive Conectado</div>
+                        <label style={{ fontSize: '0.7rem', color: '#aaa', marginTop: '4px' }}>Salvar em:</label>
+                        <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                             <button onClick={() => setSmartSaveMode('flat')} style={{ flex: 1, padding: '4px', background: smartSaveMode === 'flat' ? 'rgba(255,255,255,0.2)' : 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer' }}>Raiz</button>
+                             <button onClick={() => setSmartSaveMode('project')} style={{ flex: 1, padding: '4px', background: smartSaveMode === 'project' ? 'rgba(255,255,255,0.2)' : 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', borderRadius: '4px', fontSize: '0.7rem', cursor: 'pointer' }}>Pastas</button>
+                        </div>
+                    </>
+                )}
+             </div>
+         </div>
+
       </div>
 
-
-      {/* Main Action Button */}
+      {/* Action Button (No Blink, RGB Flow) */}
       <button
         onClick={onGenerate}
         disabled={isGenerating || !prompt.trim()}
-        className="btn-primary-action glow-animated"
+        className={!isGenerating && prompt.trim() ? "rgb-flow-border" : ""}
         style={{
             background: isGenerating ? 'transparent' : 'rgba(255,255,255,0.05)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '0.6rem',
-            width: '42px',
-            height: '42px',
+            padding: '0',
+            width: '40px',
+            height: '40px',
             borderRadius: '50%',
-            color: 'var(--rgb-green)'
+            color: 'white',
+            border: isGenerating || !prompt.trim() ? '1px solid rgba(255,255,255,0.1)' : 'none',
+            cursor: isGenerating || !prompt.trim() ? 'default' : 'pointer',
+            opacity: isGenerating || !prompt.trim() ? 0.5 : 1,
+            transition: 'all 0.3s'
         }}
       >
         {isGenerating ? (
-            <div style={{ animation: 'spin 1s linear infinite' }}>⏳</div> 
+            <div style={{ animation: 'spin 1s linear infinite', fontSize: '12px' }}>⏳</div> 
         ) : (
-            <Send size={18} fill="currentColor" />
+            <Send size={18} fill="currentColor" strokeWidth={0} />
         )}
       </button>
-
-      {/* Expanded Settings Panel (Floating Above) */}
-      {showSettings && (
-        <div className="capsule-blur" style={{
-            position: 'absolute',
-            bottom: '120%',
-            left: 0,
-            width: '100%',
-            padding: '1.5rem',
-            borderRadius: '20px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '1.5rem',
-            animation: 'slideUp 0.2s ease-out'
-        }}>
-            {/* Column 1: Ratios */}
-            <div>
-                <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Proporção</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                    {["1:1", "16:9", "9:16", "3:4", "4:3", "21:9"].map(r => (
-                        <button 
-                            key={r}
-                            onClick={() => setRatio(r)}
-                            style={{
-                                background: ratio === r ? 'var(--rgb-blue)' : 'rgba(255,255,255,0.05)',
-                                border: 'none',
-                                borderRadius: '6px',
-                                color: ratio === r ? '#000' : 'var(--text-secondary)',
-                                fontSize: '0.7rem',
-                                padding: '6px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            {r}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Column 2: Drive/Cloud */}
-            <div>
-                <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Armazenamento</label>
-                {!isDriveConnected ? (
-                    <button 
-                        onClick={onConnectDrive}
-                        style={{ width: '100%', background: 'rgba(52, 168, 83, 0.1)', color: '#34A853', border: '1px solid rgba(52, 168, 83, 0.3)', padding: '0.5rem', borderRadius: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
-                    >
-                        <HardDrive size={14} /> Conectar Drive
-                    </button>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#34A853', fontSize: '0.8rem' }}>
-                             <HardDrive size={12} /> Drive Conectado
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                             <button onClick={() => setSmartSaveMode('flat')} style={{ flex: 1, padding: '6px', borderRadius: '6px', background: smartSaveMode === 'flat' ? 'rgba(255,255,255,0.1)' : 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)', fontSize: '0.7rem', cursor: 'pointer' }}>Raiz</button>
-                             <button onClick={() => setSmartSaveMode('project')} style={{ flex: 1, padding: '6px', borderRadius: '6px', background: smartSaveMode === 'project' ? 'rgba(255,255,255,0.1)' : 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-secondary)', fontSize: '0.7rem', cursor: 'pointer' }}>Por Projeto</button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-             {/* Column 3: Resolution */}
-             <div>
-                <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-dim)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Qualidade</label>
-                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    {["1K", "2K", "4K"].map(res => (
-                        <button 
-                            key={res}
-                            onClick={() => setResolution(res)}
-                            style={{
-                                flex: 1,
-                                background: resolution === res ? 'var(--text-primary)' : 'rgba(255,255,255,0.05)',
-                                color: resolution === res ? '#000' : 'var(--text-secondary)',
-                                border: 'none',
-                                borderRadius: '6px',
-                                padding: '6px',
-                                fontSize: '0.75rem',
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                            }}
-                        >
-                            {res}
-                        </button>
-                    ))}
-                 </div>
-            </div>
-        </div>
-      )}
 
     </div>
   );
