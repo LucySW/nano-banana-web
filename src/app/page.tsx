@@ -4,7 +4,7 @@ import { Conversation, Message } from '../types';
 import { ZeroConfigModal } from '../components/ZeroConfigModal';
 import { Sidebar } from '../components/Sidebar';
 import { CommandCapsule } from '../components/CommandCapsule';
-import { Sparkles, Wand2, Image, Palette } from 'lucide-react';
+import { Wand2, Image, Palette, Building, Factory, User, Tv } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import { uploadImageToDrive } from '../lib/drive';
@@ -12,12 +12,62 @@ import { WelcomeModal } from '../components/WelcomeModal';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// Quick Start Prompts
+// Corporate Training Quick Prompts
 const QUICK_PROMPTS = [
-  { icon: <Wand2 size={14} />, text: "Paisagem futurista com neon" },
-  { icon: <Image size={14} />, text: "Retrato estilo pintura a óleo" },
-  { icon: <Palette size={14} />, text: "Abstract art com cores vibrantes" },
+  { 
+    icon: <User size={14} />, 
+    text: "Personagem 3D cartoon corporativo, fundo verde, uniforme profissional, expressão amigável" 
+  },
+  { 
+    icon: <Factory size={14} />, 
+    text: "Cenário 3D de indústria moderna, ambiente limpo e organizado, iluminação realista, sem pessoas" 
+  },
+  { 
+    icon: <Building size={14} />, 
+    text: "Cenário 3D de escritório corporativo moderno, espaço central aberto, iluminação suave" 
+  },
+  { 
+    icon: <Tv size={14} />, 
+    text: "Tela de TV corporativa em ambiente 3D, layout limpo, espaço para texto e ícones" 
+  },
 ];
+
+// Full Template Library
+const TEMPLATE_LIBRARY = {
+  "Personagens (Fundo Verde)": [
+    "Personagem 3D cartoon, estilo corporativo, usando uniforme da empresa, em pé, fundo verde sólido, iluminação uniforme de estúdio, pose neutra.",
+    "Avatar 3D cartoon corporativo, meio corpo, uniforme profissional, fundo verde, expressão amigável, qualidade de animação para treinamento empresarial.",
+    "Personagem 3D cartoon corporativo, fundo verde, olhando para a câmera, postura profissional, estilo Pixar corporativo.",
+  ],
+  "Personagens Gesticulando": [
+    "Personagem 3D cartoon corporativo, fundo verde, gesticulando com as mãos enquanto explica, expressão didática.",
+    "Avatar 3D cartoon de instrutor corporativo, uniforme da empresa, fundo verde, gesto de apontar para o lado.",
+    "Personagem 3D cartoon, estilo treinamento corporativo, fundo verde, gesto de explicação com uma mão levantada.",
+  ],
+  "Cenários Industriais": [
+    "Cenário 3D de indústria moderna, ambiente limpo e organizado, iluminação realista, sem pessoas.",
+    "Interior de fábrica industrial moderna, perspectiva ampla, espaço central aberto, estilo realista.",
+    "Cenário industrial corporativo, máquinas ao fundo, área central livre para composição com personagem.",
+  ],
+  "Escritórios Corporativos": [
+    "Cenário 3D de escritório corporativo moderno, espaço central aberto, iluminação suave, sem pessoas.",
+    "Ambiente corporativo moderno, layout clean, área central vazia para inserção de personagem.",
+    "Cenário de empresa tecnológica, design contemporâneo, foco em espaço livre no centro.",
+  ],
+  "Fundos Neutros": [
+    "Cenário corporativo neutro, tons claros, espaço central amplo, estilo treinamento empresarial.",
+    "Background corporativo minimalista, ideal para vídeos instrutivos, sem distrações visuais.",
+  ],
+  "Telas Informativas": [
+    "Tela de TV corporativa em ambiente 3D, layout limpo, espaço para texto e ícones, sem conteúdo.",
+    "Monitor corporativo 3D ao lado esquerdo, design moderno, fundo neutro para inserir informações.",
+    "Template de tela informativa corporativa, estilo treinamento, área clara para texto e gráficos.",
+  ],
+  "Composições": [
+    "Personagem 3D cartoon corporativo em fundo verde, com espaço lateral direito para inserir TV informativa.",
+    "Avatar 3D corporativo gesticulando, enquadramento com área reservada para tela de informações ao lado.",
+  ],
+};
 
 export default function Home() {
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -25,6 +75,7 @@ export default function Home() {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,7 +90,6 @@ export default function Home() {
   const [resolution, setResolution] = useState("1K");
   const [smartSaveMode, setSmartSaveMode] = useState<'flat' | 'project'>('flat');
 
-  // Welcome Modal Logic
   useEffect(() => {
     const stored = localStorage.getItem("romsoft_api_key");
     if (stored) {
@@ -57,7 +107,6 @@ export default function Home() {
     setShowWelcomeModal(false);
   };
 
-  // --- LOAD PROJECTS (Cloud) ---
   const loadCloudProjects = async (userId: string) => {
     const { data } = await supabase
         .from('projects')
@@ -76,7 +125,6 @@ export default function Home() {
     return [];
   };
 
-  // --- SYNC LOGIC (Local -> Cloud) ---
   const syncLocalToCloud = async (userId: string) => {
     const local = localStorage.getItem('romsoft_conversations');
     if (!local) return;
@@ -116,7 +164,6 @@ export default function Home() {
     }
   };
 
-  // --- LOAD MESSAGES (Cloud) ---
   const loadCloudMessages = async (projectId: string) => {
       const { data } = await supabase
         .from('generations')
@@ -382,14 +429,73 @@ export default function Home() {
 
   const handleQuickPrompt = (text: string) => {
       setInput(text);
+      setShowTemplates(false);
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', background: 'var(--bg-deep)' }}>
+    <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
       
       {/* Modals */}
       {showWelcomeModal && <WelcomeModal onComplete={handleWelcomeComplete} />}
       {showKeyModal && <ZeroConfigModal onValidate={handleValidate} />}
+
+      {/* Template Library Modal */}
+      {showTemplates && (
+        <div className="modal-backdrop" onClick={() => setShowTemplates(false)}>
+          <div 
+            className="glass-panel slide-up" 
+            style={{ 
+              width: '90%', 
+              maxWidth: '600px', 
+              maxHeight: '70vh',
+              overflowY: 'auto',
+              padding: '1.5rem'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ 
+              fontSize: '1.1rem', 
+              fontWeight: 500, 
+              marginBottom: '1rem',
+              color: 'var(--text-primary)'
+            }}>
+              📚 Biblioteca de Prompts Corporativos
+            </h2>
+            {Object.entries(TEMPLATE_LIBRARY).map(([category, prompts]) => (
+              <div key={category} style={{ marginBottom: '1rem' }}>
+                <h3 style={{ 
+                  fontSize: '0.8rem', 
+                  color: 'var(--accent-blue)',
+                  marginBottom: '0.5rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  {category}
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {prompts.map((prompt, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleQuickPrompt(prompt)}
+                      className="card"
+                      style={{
+                        padding: '10px 12px',
+                        fontSize: '0.8rem',
+                        color: 'var(--text-secondary)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        border: '1px solid var(--border-subtle)'
+                      }}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Sidebar 
         conversations={conversations} 
@@ -422,22 +528,22 @@ export default function Home() {
               textAlign: 'center',
               gap: '1.5rem'
             }}>
-              {/* Logo - Simple, No Animation */}
+              {/* Logo */}
               <img 
                 src="/logo-r.png" 
                 alt="Romsoft Studio AI" 
                 style={{ 
-                  width: '64px', 
-                  height: '64px', 
+                  width: '56px', 
+                  height: '56px', 
                   objectFit: 'contain',
                   filter: 'drop-shadow(0 0 20px rgba(96, 165, 250, 0.2))'
                 }} 
               />
               
-              {/* Title with Gradient */}
+              {/* Title */}
               <div>
                 <h1 style={{ 
-                  fontSize: '1.5rem', 
+                  fontSize: '1.4rem', 
                   fontWeight: 400, 
                   margin: 0,
                   letterSpacing: '-0.02em'
@@ -447,10 +553,9 @@ export default function Home() {
                 <p style={{ 
                   color: 'var(--text-muted)', 
                   fontSize: '0.9rem', 
-                  marginTop: '0.5rem',
-                  fontWeight: 400
+                  marginTop: '0.5rem'
                 }}>
-                  Transforme suas ideias em arte visual
+                  Crie imagens para treinamentos corporativos
                 </p>
               </div>
 
@@ -458,28 +563,38 @@ export default function Home() {
               <div style={{ 
                 display: 'flex', 
                 flexWrap: 'wrap', 
-                gap: '0.5rem', 
+                gap: '8px', 
                 justifyContent: 'center',
-                marginTop: '1rem'
+                marginTop: '0.5rem',
+                maxWidth: '600px'
               }}>
                 {QUICK_PROMPTS.map((prompt, i) => (
                   <button 
                     key={i}
                     onClick={() => handleQuickPrompt(prompt.text)}
-                    className="btn-subtle"
-                    style={{ 
-                      fontSize: '0.8rem',
-                      padding: '8px 14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
+                    className="prompt-chip"
                   >
                     {prompt.icon}
-                    {prompt.text}
+                    <span style={{ 
+                      maxWidth: '200px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {prompt.text.slice(0, 40)}...
+                    </span>
                   </button>
                 ))}
               </div>
+
+              {/* View All Templates Button */}
+              <button 
+                onClick={() => setShowTemplates(true)}
+                className="btn btn-ghost"
+                style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}
+              >
+                📚 Ver todos os templates
+              </button>
             </div>
           ) : (
             /* Messages */

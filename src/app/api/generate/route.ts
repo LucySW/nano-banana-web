@@ -11,22 +11,37 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // Use the correct model name for image generation
     const model = genAI.getGenerativeModel({
-      model: "gemini-3-pro-image-preview",
-      systemInstruction: systemPrompt,
+      model: "gemini-2.0-flash-exp-image-generation",
     });
 
+    // Build the prompt with aspect ratio hint
     let finalPrompt = prompt;
     if (style && style !== "Nenhum") finalPrompt += `, ${style} style`;
     if (lighting && lighting !== "Nenhum") finalPrompt += `, ${lighting} lighting`;
-    finalPrompt += ` --aspect_ratio ${ratio}`;
+    
+    // Add aspect ratio as a natural language hint
+    const ratioMap: Record<string, string> = {
+      "1:1": "square format",
+      "16:9": "widescreen landscape format (16:9)",
+      "9:16": "vertical portrait format (9:16)",
+      "4:3": "classic 4:3 format",
+      "3:4": "vertical 3:4 portrait format",
+      "3:2": "classic photo 3:2 format",
+      "2:3": "vertical 2:3 portrait format",
+      "21:9": "ultrawide cinematic format (21:9)"
+    };
+    
+    if (ratio && ratioMap[ratio]) {
+      finalPrompt += `. Image should be in ${ratioMap[ratio]}.`;
+    }
 
-    // Note: 'image_size' support varies by SDK version. 
-    // We pass it in generationConfig. If the SDK types complain, we might need a cast or ts-ignore in local dev,
-    // but usually it passes through to the API.
+    // Generation config without unsupported fields
     const generationConfig: any = {
-      temperature: parseFloat(temperature),
-      image_size: resolution, // 1K, 2K, 4K provided by client
+      temperature: parseFloat(temperature) || 0.7,
+      responseModalities: ["TEXT", "IMAGE"],
     };
 
     const result = await model.generateContent({
@@ -36,29 +51,40 @@ export async function POST(req: Request) {
 
     const response = await result.response;
     
-    // Attempt to find inline image data
+    // Find inline image data
     const candidate = response.candidates?.[0];
-    const part = candidate?.content?.parts?.[0];
+    const parts = candidate?.content?.parts || [];
+    
+    // Look for image part in all parts
+    const imagePart = parts.find((p: any) => 'inlineData' in p && p.inlineData);
 
-    if (part && 'inlineData' in part && part.inlineData) {
+    if (imagePart && 'inlineData' in imagePart && imagePart.inlineData) {
         return NextResponse.json({
             success: true,
-            image: part.inlineData.data, // Base64 string
-            mimeType: part.inlineData.mimeType,
+            image: imagePart.inlineData.data,
+            mimeType: imagePart.inlineData.mimeType,
             metadata: {
                 timestamp: new Date().toISOString(),
                 finalPrompt,
                 resolution,
                 ratio,
-                model: "gemini-3-pro-image-preview"
+                model: "gemini-2.0-flash-exp-image-generation"
             }
         });
     }
 
-    return NextResponse.json({ error: "No image generated. The model might have returned text only." }, { status: 500 });
+    // If no image, return text response for debugging
+    const textPart = parts.find((p: any) => 'text' in p);
+    return NextResponse.json({ 
+      error: "No image generated. Model returned text: " + (textPart?.text || "No response"),
+      debug: { parts: parts.map((p: any) => Object.keys(p)) }
+    }, { status: 500 });
 
   } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ 
+      error: `[GoogleGenerativeAI Error]: ${error.message || "Unknown error"}`,
+      details: error.toString()
+    }, { status: 500 });
   }
 }

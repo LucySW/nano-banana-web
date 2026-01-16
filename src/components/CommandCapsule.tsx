@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, HardDrive, Key, Check, X, Loader2, ChevronDown } from 'lucide-react';
+import { Send, HardDrive, Key, Check, X, Loader2, ChevronDown, ImagePlus, AlertTriangle } from 'lucide-react';
 
 interface CommandCapsuleProps {
   prompt: string;
@@ -20,13 +20,29 @@ interface CommandCapsuleProps {
 
   apiKey: string | null;
   setApiKey: (key: string | null) => void;
+
+  // Image attachment (optional)
+  onAttachImage?: () => void;
 }
+
+// Aspect ratio visual map
+const RATIO_VISUALS: Record<string, { label: string; class: string }> = {
+  "1:1": { label: "Quadrado", class: "square" },
+  "16:9": { label: "Widescreen", class: "wide" },
+  "9:16": { label: "Stories/Reels", class: "tall" },
+  "4:3": { label: "Clássico", class: "classic" },
+  "3:4": { label: "Retrato", class: "portrait" },
+  "3:2": { label: "Foto", class: "photo" },
+  "2:3": { label: "Foto Vertical", class: "photo-v" },
+  "21:9": { label: "Ultrawide", class: "ultra" },
+};
 
 export function CommandCapsule({
   prompt, setPrompt, onGenerate, isGenerating,
   ratio, setRatio, resolution, setResolution,
   isDriveConnected, onConnectDrive, smartSaveMode, setSmartSaveMode,
-  apiKey, setApiKey
+  apiKey, setApiKey,
+  onAttachImage
 }: CommandCapsuleProps) {
   
   const [showKeyMenu, setShowKeyMenu] = useState(false);
@@ -75,7 +91,7 @@ export function CommandCapsule({
     }
   };
 
-  const ratios = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9"];
+  const ratios = Object.keys(RATIO_VISUALS);
   const resolutions = ["1K", "2K", "4K"];
 
   return (
@@ -85,7 +101,7 @@ export function CommandCapsule({
       left: '50%',
       transform: 'translateX(-50%)',
       width: 'calc(100% - 3rem)',
-      maxWidth: '720px',
+      maxWidth: '760px',
       padding: '8px 12px',
       display: 'flex',
       alignItems: 'center',
@@ -170,6 +186,17 @@ export function CommandCapsule({
         )}
       </div>
 
+      {/* Image Attachment Button */}
+      {onAttachImage && (
+        <button 
+          onClick={onAttachImage}
+          className="btn-icon"
+          title="Anexar imagem de referência"
+        >
+          <ImagePlus size={18} />
+        </button>
+      )}
+
       {/* Text Input */}
       <input
         type="text"
@@ -191,32 +218,32 @@ export function CommandCapsule({
       {/* Divider */}
       <div style={{ width: '1px', height: '24px', background: 'var(--border-subtle)' }} />
 
-      {/* Ratio Dropdown */}
+      {/* Ratio Dropdown with Visual Preview */}
       <div className="dropdown-trigger">
-        <button className="btn-ghost" style={{ 
+        <button className="btn btn-ghost" style={{ 
           fontSize: '0.8rem', 
           padding: '6px 10px',
           display: 'flex',
           alignItems: 'center',
-          gap: '4px'
+          gap: '6px'
         }}>
+          <div className={`ratio-preview ${RATIO_VISUALS[ratio]?.class || 'wide'}`}></div>
           {ratio}
           <ChevronDown size={12} />
         </button>
         <div className="dropdown-content" style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(2, 1fr)', 
-          width: '160px',
-          gap: '2px'
+          width: '200px',
+          padding: '8px'
         }}>
           {ratios.map(r => (
             <button 
               key={r} 
               onClick={() => setRatio(r)}
               className={`dropdown-item ${ratio === r ? 'active' : ''}`}
-              style={{ textAlign: 'center' }}
             >
-              {r}
+              <div className={`ratio-preview ${RATIO_VISUALS[r].class}`}></div>
+              <span style={{ flex: 1 }}>{r}</span>
+              <span style={{ fontSize: '0.7rem', opacity: 0.6 }}>{RATIO_VISUALS[r].label}</span>
             </button>
           ))}
         </div>
@@ -224,7 +251,7 @@ export function CommandCapsule({
 
       {/* Resolution Dropdown */}
       <div className="dropdown-trigger">
-        <button className="btn-ghost" style={{ 
+        <button className="btn btn-ghost" style={{ 
           fontSize: '0.8rem', 
           padding: '6px 10px',
           display: 'flex',
@@ -247,34 +274,59 @@ export function CommandCapsule({
         </div>
       </div>
 
-      {/* Drive Status */}
+      {/* Drive Status with Clear Warning */}
       <div className="dropdown-trigger">
         <button 
           className="btn-icon"
           style={{ 
-            color: isDriveConnected ? 'var(--accent-green)' : 'var(--text-muted)'
+            color: isDriveConnected ? 'var(--accent-green)' : 'var(--accent-orange)',
+            position: 'relative'
           }}
-          title={isDriveConnected ? "Drive conectado" : "Drive não conectado"}
+          title={isDriveConnected ? "Salvando no Drive" : "⚠️ Imagens NÃO serão salvas!"}
         >
           <HardDrive size={18} />
+          {/* Warning dot when not connected */}
+          {!isDriveConnected && (
+            <span className="status-dot warning" style={{
+              position: 'absolute',
+              top: '2px',
+              right: '2px',
+              width: '6px',
+              height: '6px'
+            }}></span>
+          )}
         </button>
-        <div className="dropdown-content" style={{ width: '200px', padding: '10px' }}>
+        <div className="dropdown-content" style={{ width: '220px', padding: '12px' }}>
           {!isDriveConnected ? (
             <div style={{ textAlign: 'center' }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                gap: '6px',
+                color: 'var(--accent-orange)', 
+                marginBottom: '8px', 
+                fontSize: '0.85rem', 
+                fontWeight: 500 
+              }}>
+                <AlertTriangle size={14} />
+                Sem salvamento!
+              </div>
               <p style={{ 
                 color: 'var(--text-muted)', 
-                fontSize: '0.8rem', 
-                margin: '0 0 8px' 
+                fontSize: '0.75rem', 
+                margin: '0 0 10px',
+                lineHeight: 1.4
               }}>
-                Salve suas imagens no Google Drive
+                Suas imagens geradas não serão salvas automaticamente.
               </p>
               <button 
                 onClick={onConnectDrive} 
                 className="btn btn-success"
-                style={{ width: '100%' }}
+                style={{ width: '100%', fontSize: '0.8rem' }}
               >
                 <HardDrive size={14} />
-                Conectar Drive
+                Conectar Google Drive
               </button>
             </div>
           ) : (
@@ -284,17 +336,25 @@ export function CommandCapsule({
                 alignItems: 'center', 
                 gap: '6px',
                 color: 'var(--accent-green)', 
-                fontSize: '0.8rem',
-                marginBottom: '8px'
+                fontSize: '0.85rem',
+                marginBottom: '10px'
               }}>
                 <Check size={14} />
-                Drive Conectado
+                Salvando no Drive
               </div>
+              <label style={{ 
+                fontSize: '0.7rem', 
+                color: 'var(--text-muted)',
+                display: 'block',
+                marginBottom: '6px'
+              }}>
+                Organização:
+              </label>
               <div style={{ 
                 display: 'flex', 
                 gap: '4px',
                 background: 'var(--bg-surface)',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 padding: '4px'
               }}>
                 <button 
@@ -309,7 +369,7 @@ export function CommandCapsule({
                   className={`btn ${smartSaveMode === 'project' ? 'btn-primary' : 'btn-ghost'}`}
                   style={{ flex: 1, padding: '6px', fontSize: '0.75rem' }}
                 >
-                  Pastas
+                  Por Conversa
                 </button>
               </div>
             </div>
@@ -321,18 +381,19 @@ export function CommandCapsule({
       <button
         onClick={onGenerate}
         disabled={isGenerating || !prompt.trim()}
-        className={`btn ${!isGenerating && prompt.trim() ? 'btn-primary rgb-border' : 'btn-subtle'}`}
+        className="btn btn-primary"
         style={{
-          width: '40px',
-          height: '40px',
+          width: '44px',
+          height: '44px',
           padding: 0,
-          borderRadius: '50%'
+          borderRadius: '50%',
+          opacity: (!isGenerating && prompt.trim()) ? 1 : 0.4
         }}
       >
         {isGenerating ? (
-          <Loader2 size={18} className="spin" />
+          <Loader2 size={20} className="spin" style={{ color: '#000' }} />
         ) : (
-          <Send size={18} />
+          <Send size={20} style={{ color: '#000' }} />
         )}
       </button>
 
