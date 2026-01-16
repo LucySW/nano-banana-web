@@ -297,7 +297,8 @@ export default function Home() {
                                     style={{ display: 'block', maxWidth: '100%', borderRadius: '8px', maxHeight: '60vh' }}
                                 />
                             </div>
-                                paddingLeft: '0.5rem', marginTop: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer'
+                            <div style={{
+                                paddingLeft: '0.5rem', marginTop: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--text-secondary)'
                             }}
                             onClick={() => {
                                 if (msg.textPrompt) setInput(msg.textPrompt);
@@ -306,9 +307,9 @@ export default function Home() {
                             }}
                             title="Clique para Reutilizar (Remix)">
                                 <span>{msg.metadata?.ratio}</span>
-                                <span>•</span>
+                                <span> • </span>
                                 <span>{msg.metadata?.resolution}</span>
-                                <span>•</span>
+                                <span> • </span>
                                 <span>TEMP {msg.metadata?.temp}</span>
                             </div>
                         </div>
