@@ -1,6 +1,6 @@
 "use client";
-import React, { useState } from 'react';
-import { Save } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Save, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ControlDeckProps {
   ratio: string;
@@ -18,6 +18,18 @@ export function ControlDeck({
 }: ControlDeckProps) {
 
   const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [showRatioMenu, setShowRatioMenu] = useState(false);
+  const ratioMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ratioMenuRef.current && !ratioMenuRef.current.contains(event.target as Node)) {
+        setShowRatioMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Custom SVG Icons for Aspect Ratios
   const ratios = [
@@ -30,98 +42,155 @@ export function ControlDeck({
     { value: "9:16", label: "Story", width: 11.25, height: 20 }, 
   ];
 
+  const currentRatio = ratios.find(r => r.value === ratio) || ratios[1];
+
   return (
     <div style={{ 
       display: 'flex', 
       alignItems: 'center', 
       gap: '1.5rem', 
       marginBottom: '1.5rem',
-      padding: '0.75rem 1rem',
+      padding: '0.75rem 1.5rem',
       background: 'rgba(255,255,255,0.03)',
       backdropFilter: 'blur(10px)',
-      borderRadius: '16px',
-      border: '1px solid var(--border-color)',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+      borderRadius: '24px',
+      border: '1px solid rgba(255,255,255,0.05)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
     }}>
       
-      {/* Ratio Selector */}
-      <div style={{ display: 'flex', gap: '0.8rem', overflowX: 'auto', paddingBottom: '4px' }}>
-        {ratios.map(r => (
-            <button
-                key={r.value}
-                onClick={() => setRatio(r.value)}
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    opacity: ratio === r.value ? 1 : 0.5,
-                    transition: 'all 0.2s',
-                    padding: '4px 8px',
-                    borderRadius: '8px',
-                    minWidth: '40px'
-                }}
-            >
-                {/* Text Label */}
-                <span style={{ 
-                    fontSize: '0.7rem', 
-                    fontWeight: 600, 
-                    color: ratio === r.value ? 'var(--accent-primary)' : 'var(--text-dim)',
-                    whiteSpace: 'nowrap'
-                }}>
-                    {r.value}
-                </span>
+      {/* Ratio Dropdown */}
+      <div style={{ position: 'relative' }} ref={ratioMenuRef}>
+        <button 
+            onClick={() => setShowRatioMenu(!showRatioMenu)}
+            style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-primary)',
+                padding: '4px'
+            }}
+        >
+            <div style={{ 
+                width: '32px', 
+                height: '24px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                background: 'rgba(var(--accent-primary-rgb), 0.1)',
+                borderRadius: '6px'
+            }}>
+                <svg width="32" height="24" viewBox="0 0 32 24" style={{ fill: 'none', stroke: 'var(--accent-primary)', strokeWidth: 2 }}>
+                    <rect 
+                        x={(32 - currentRatio.width) / 2} 
+                        y={(24 - currentRatio.height) / 2} 
+                        width={currentRatio.width} 
+                        height={currentRatio.height} 
+                        rx="2"
+                    />
+                </svg>
+            </div>
+            <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, lineHeight: 1 }}>{currentRatio.value}</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', lineHeight: 1.2 }}>{currentRatio.label}</div>
+            </div>
+            {showRatioMenu ? <ChevronUp size={14} color="var(--text-dim)" /> : <ChevronDown size={14} color="var(--text-dim)" />}
+        </button>
 
-                {/* SVG Icon */}
-                <div style={{ 
-                    width: '32px', 
-                    height: '24px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    background: ratio === r.value ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'transparent',
-                    borderRadius: '4px'
-                }}>
-                    <svg width="32" height="24" viewBox="0 0 32 24" style={{ fill: 'none', stroke: ratio === r.value ? 'var(--accent-primary)' : 'currentColor', strokeWidth: 2 }}>
-                        <rect 
-                            x={(32 - r.width) / 2} 
-                            y={(24 - r.height) / 2} 
-                            width={r.width} 
-                            height={r.height} 
-                            rx="2"
-                        />
-                    </svg>
-                </div>
-            </button>
-        ))}
+        {/* Dropdown Menu */}
+        {showRatioMenu && (
+            <div style={{
+                position: 'absolute',
+                bottom: '130%',
+                left: 0,
+                background: 'var(--bg-card)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '0.5rem',
+                minWidth: '160px',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px'
+            }}>
+                {ratios.map(r => (
+                    <button
+                        key={r.value}
+                        onClick={() => {
+                            setRatio(r.value);
+                            setShowRatioMenu(false);
+                        }}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            background: ratio === r.value ? 'var(--bg-input)' : 'transparent',
+                            border: 'none',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            width: '100%'
+                        }}
+                    >
+                        <div style={{ 
+                            width: '24px', 
+                            height: '18px', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            opacity: ratio === r.value ? 1 : 0.5
+                        }}>
+                            <svg width="24" height="18" viewBox="0 0 32 24" style={{ fill: 'none', stroke: 'var(--text-primary)', strokeWidth: 2 }}>
+                                <rect 
+                                    x={(32 - r.width) / 2} 
+                                    y={(24 - r.height) / 2} 
+                                    width={r.width} 
+                                    height={r.height} 
+                                    rx="2"
+                                />
+                            </svg>
+                        </div>
+                        <div>
+                            <span style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-primary)' }}>{r.value}</span>
+                            <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-dim)' }}>{r.label}</span>
+                        </div>
+                    </button>
+                ))}
+            </div>
+        )}
       </div>
 
-      <div style={{ width: '1px', height: '30px', background: 'var(--border-color)', opacity: 0.5 }}></div>
+      <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', opacity: 0.5 }}></div>
 
-      {/* Resolution Selector */}
+      {/* Resolution Selector (Simple) */}
       <div style={{ position: 'relative' }}>
           <select 
             value={resolution}
             onChange={(e) => setResolution(e.target.value)}
             style={{
-                background: 'var(--bg-input)',
+                background: 'transparent',
                 color: 'var(--text-primary)',
-                border: '1px solid var(--border-color)',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                fontSize: '0.85rem',
+                border: 'none',
+                padding: '6px 0',
+                fontSize: '0.9rem',
+                fontWeight: 500,
                 cursor: 'pointer',
                 outline: 'none',
-                minWidth: '100px'
+                minWidth: '80px',
+                textAlign: 'center'
             }}
           >
-              <option value="1K">1K • Fast</option>
-              <option value="2K">2K • Detail</option>
-              <option value="4K">4K • Ultra</option>
+              <option value="1K">1K</option>
+              <option value="2K">2K</option>
+              <option value="4K">4K</option>
           </select>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
+            Resolution
+          </span>
       </div>
 
       <div style={{ flex: 1 }}></div>
@@ -141,7 +210,7 @@ export function ControlDeck({
             cursor: 'help',
             padding: '8px 12px',
             background: 'var(--bg-input)',
-            borderRadius: '8px',
+            borderRadius: '12px',
             border: '1px solid transparent'
         }}>
             <Save size={16} />
