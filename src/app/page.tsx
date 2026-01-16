@@ -15,7 +15,9 @@ export default function Home() {
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [isLocked, setIsLocked] = useState(true);
+  // REMOVED: const [isLocked, setIsLocked] = useState(true);
+  const [showKeyModal, setShowKeyModal] = useState(false); // New state for on-demand modal
+
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -164,7 +166,9 @@ export default function Home() {
     const key = localStorage.getItem('romsoft_key');
     if (key) {
       setApiKey(key);
-      setIsLocked(false);
+      // setIsLocked(false); -> removed
+    } else {
+      // setIsLocked(false); -> removed, UI is always unlocked now
     }
   }, []);
 
@@ -185,7 +189,9 @@ export default function Home() {
   const handleValidate = (key: string) => {
     localStorage.setItem('romsoft_key', key);
     setApiKey(key);
-    setIsLocked(false);
+    setShowKeyModal(false);
+    // Auto-retry generation? Ideally yes, but tricky with React state. User can just click again.
+    // If conversatiosn empty, start new
     if (conversations.length === 0) handleNewConversation();
   };
 
@@ -227,20 +233,49 @@ export default function Home() {
   const activeConversation = conversations.find(c => c.id === currentId);
 
   const handleGenerate = async () => {
-    if (!input.trim() || !activeConversation || !apiKey) return;
+    if (!input.trim()) return;
+
+    // 1. Check API Key
+    if (!apiKey) {
+        setShowKeyModal(true);
+        return;
+    }
     
+    // Ensure active conversation (if none, create temp wrapper logic or just create one)
+    let currentConv = activeConversation;
+    if (!currentConv) {
+         // Force create a conversation synchronously-ish? 
+         // For now let's just create one if none exists logic is separate. 
+         // Actually, if !activeConversation, the UI usually shows empty state.
+         // Let's create one on the fly if needed.
+         if (conversations.length === 0) {
+            // Need to handle async creation. 
+            // Simplified: Just block if no conversation, but usually UI handles it.
+            // Let's assume handleNewConversation was called or user is in a context.
+            // Wait, if no conversation selected, we can't generate.
+            // Let's auto-create one.
+             await handleNewConversation();
+             // Re-fetch active (tricky due to state batching).
+             // Ideally we return here and let user click again or use effect.
+             // For robustness: Return and let user click again after we created it (or fix state logic deep).
+             return; 
+         }
+    }
+    
+    if (!currentConv) return; // Should be handled by auto-create logic above or UI logic
+
     // Optimistic Update
     const tempId = generateId();
     const userMsg: Message = { id: tempId, role: 'user', content: input };
-    let updatedConv = { ...activeConversation, messages: [...activeConversation.messages, userMsg] };
+    let updatedConv = { ...currentConv, messages: [...currentConv.messages, userMsg] };
     
     // Update Title if first message
-    let isFirst = activeConversation.messages.length === 0;
+    let isFirst = currentConv.messages.length === 0;
     if (isFirst) {
         const newTitle = input.slice(0, 30) + (input.length > 30 ? "..." : "");
         updatedConv.title = newTitle;
         if (!isGuest) {
-            supabase.from('projects').update({ title: newTitle }).eq('id', activeConversation.id).then();
+            supabase.from('projects').update({ title: newTitle }).eq('id', currentConv.id).then();
         }
     }
 
@@ -249,7 +284,7 @@ export default function Home() {
     // Save User Msg
     if (!isGuest) {
         supabase.from('generations').insert({
-            project_id: activeConversation.id,
+            project_id: currentConv.id,
             role: 'user',
             content: input
         }).then();
@@ -304,7 +339,7 @@ export default function Home() {
                 
                 // Save Message with Drive Link
                 await supabase.from('generations').insert({
-                    project_id: activeConversation.id,
+                    project_id: currentConv.id,
                     role: 'model',
                     content: driveResult.webViewLink || data.image, // Use link if available
                     prompt_text: input,
@@ -318,7 +353,7 @@ export default function Home() {
                 console.error("Drive upload failed, using DB fallback", driveErr);
                 // Fallback to storing base64
                 await supabase.from('generations').insert({
-                    project_id: activeConversation.id,
+                    project_id: currentConv.id,
                     role: 'model',
                     content: data.image,
                     prompt_text: input,
@@ -330,7 +365,7 @@ export default function Home() {
         } else if (!isGuest) {
              // Logged in but no Google Token (e.g. Email login) -> DB Storage
              await supabase.from('generations').insert({
-                project_id: activeConversation.id,
+                project_id: currentConv.id,
                 role: 'model',
                 content: data.image,
                 prompt_text: input,
@@ -367,12 +402,14 @@ export default function Home() {
     }
   };
 
-  if (isLocked) {
-    return <ZeroConfigModal onValidate={handleValidate} />;
-  }
-
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
+      
+      {/* API Key Modal (On Demand) */}
+      {showKeyModal && (
+        <ZeroConfigModal onValidate={handleValidate} />
+      )}
+
       <Sidebar 
         conversations={conversations} 
         currentId={currentId} 

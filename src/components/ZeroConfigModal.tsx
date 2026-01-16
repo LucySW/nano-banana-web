@@ -26,9 +26,9 @@ export function ZeroConfigModal({ onValidate }: ZeroConfigModalProps) {
           <KeyRound size={28} color="var(--accent-primary)" />
         </div>
         
-        <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>Conectar Motor Nano Banana</h2>
+        <h2 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>Conectar Motor AI</h2>
         <p style={{ margin: '0 0 2rem 0', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          Para iniciar, precisamos da sua chave de acesso.
+          Para gerar imagens, insira sua chave da API.
         </p>
 
         <input 
