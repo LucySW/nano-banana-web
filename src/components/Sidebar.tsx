@@ -83,9 +83,21 @@ export function Sidebar({ conversations, currentId, onSelect, onNew }: SidebarPr
       </div>
 
       {/* Footer */}
-      <div style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center' }}>
-        <button className="btn-clean" title="Configurações Globais">
+      <div style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button className="btn-clean" title="Configurações">
           <Settings size={20} />
+        </button>
+        <button 
+            className="btn-clean" 
+            title="Sair da Conta"
+            onClick={async () => {
+                const { supabase } = await import('../lib/supabase'); // Dynamic import to avoid circular dep if needed, or just import at top
+                await supabase.auth.signOut();
+                window.location.reload(); // Force reload to trigger auth check in page.tsx
+            }}
+            style={{ color: '#ef4444' }}
+        >
+          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>SAIR</span>
         </button>
       </div>
     </div>

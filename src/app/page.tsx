@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 
-const generateId = () => Math.random().toString(36).substr(2, 9);
+const generateId = () => Math.random().toString(36).substr(2, 9); // Still useful for optimistic UI
 
 export default function Home() {
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -15,40 +15,94 @@ export default function Home() {
   // Settings State
   const [ratio, setRatio] = useState("16:9");
   const [resolution, setResolution] = useState("1K");
-  const [smartSaveMode, setSmartSaveMode] = useState<'flat' | 'project'>('flat'); // New state
+  const [smartSaveMode, setSmartSaveMode] = useState<'flat' | 'project'>('flat');
   
+  // --- LOAD PROJECTS ---
+  const loadProjects = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('updated_at', { ascending: false });
+
+    if (data) {
+        // Map DB projects to Conversation type (messages loaded lazily ideally, but for now we can fetch them or init empty)
+        // For simplicity now: we load just the list.
+        const mapped: Conversation[] = data.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            messages: [], // We will load these when selected
+            createdAt: p.created_at
+        }));
+        setConversations(mapped);
+        
+        // If we have projects but no current selection, select first
+        if (mapped.length > 0 && !currentId) {
+            handleSelectProject(mapped[0].id);
+        } else if (mapped.length === 0) {
+             // Create default if none? Or wait for user.
+        }
+    }
+  };
+
+  // --- LOAD MESSAGES (Generations) ---
+  const loadMessages = async (projectId: string) => {
+      const { data, error } = await supabase
+        .from('generations')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true }); // Chronological
+
+      if (data) {
+          const mappedMsgs: Message[] = data.map((g: any) => ({
+              id: g.id,
+              role: g.role,
+              content: g.content, // Text or Base64 (if we stored base64 in DB, note: DB size limit!)
+              // NOTE: For now assume content is stored. If images are large, verify storage strategy.
+              textPrompt: g.prompt_text,
+              metadata: {
+                  timestamp: g.created_at,
+                  ratio: g.ratio,
+                  resolution: g.resolution,
+                  temp: g.temperature
+              }
+          }));
+          
+          setConversations(prev => prev.map(c => {
+              if (c.id === projectId) {
+                  return { ...c, messages: mappedMsgs };
+              }
+              return c;
+          }));
+      }
+  };
+
   useEffect(() => {
-    // 1. Check Auth
-    const checkUser = async () => {
+    // 1. Check Auth & Load
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push('/login');
         return;
       }
+      loadProjects();
     };
-    checkUser();
+    init();
 
-    // 2. Load API Key
+    // 2. Load API Key (Local Setting)
     const key = localStorage.getItem('romsoft_key');
     if (key) {
       setApiKey(key);
       setIsLocked(false);
     }
-
-    // 3. Load Conversations (Eventually replace with Supabase select)
-    const savedConvs = localStorage.getItem('romsoft_conversations');
-    if (savedConvs) {
-      const parsed = JSON.parse(savedConvs);
-      setConversations(parsed);
-      if (parsed.length > 0) setCurrentId(parsed[0].id);
-    }
   }, []);
 
-  useEffect(() => {
-    if (conversations.length > 0) {
-        localStorage.setItem('romsoft_conversations', JSON.stringify(conversations));
-    }
-  }, [conversations]);
+  const handleSelectProject = (id: string) => {
+      setCurrentId(id);
+      loadMessages(id);
+  };
 
   const handleValidate = (key: string) => {
     localStorage.setItem('romsoft_key', key);
@@ -57,31 +111,64 @@ export default function Home() {
     if (conversations.length === 0) handleNewConversation();
   };
 
-  const handleNewConversation = () => {
-    const newConv: Conversation = {
-      id: generateId(),
-      title: "Nova Ideia",
-      messages: [],
-      createdAt: new Date().toISOString()
-    };
-    setConversations(prev => [newConv, ...prev]);
-    setCurrentId(newConv.id);
+  // --- NEW PROJECT ---
+  const handleNewConversation = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if(!user) return;
+
+    const newTitle = "Nova Ideia";
+    
+    // Insert into DB
+    const { data, error } = await supabase
+        .from('projects')
+        .insert([{ user_id: user.id, title: newTitle }])
+        .select()
+        .single();
+    
+    if (data) {
+        const newConv: Conversation = {
+            id: data.id,
+            title: data.title,
+            messages: [],
+            createdAt: data.created_at
+        };
+        setConversations(prev => [newConv, ...prev]);
+        setCurrentId(newConv.id);
+    }
   };
 
   const activeConversation = conversations.find(c => c.id === currentId);
 
   const handleGenerate = async () => {
     if (!input.trim() || !activeConversation || !apiKey) return;
-
-    const userMsg: Message = { id: generateId(), role: 'user', content: input };
     
-    // Update local state and title
+    const { data: { user } } = await supabase.auth.getUser();
+    if(!user) return;
+
+    const tempId = generateId(); // Optimistic ID
+    const userMsg: Message = { id: tempId, role: 'user', content: input };
+    
+    // Optimistic Update
     let updatedConv = { ...activeConversation, messages: [...activeConversation.messages, userMsg] };
-    if (activeConversation.messages.length === 0) {
-      updatedConv.title = input.slice(0, 30) + (input.length > 30 ? "..." : "");
+    
+    // Update Title if first message
+    let isFirst = activeConversation.messages.length === 0;
+    if (isFirst) {
+        const newTitle = input.slice(0, 30) + (input.length > 30 ? "..." : "");
+        updatedConv.title = newTitle;
+        // Update DB Title
+        supabase.from('projects').update({ title: newTitle }).eq('id', activeConversation.id).then();
     }
 
     setConversations(prev => prev.map(c => c.id === currentId ? updatedConv : c));
+    
+    // Save User Msg to DB (Async)
+    supabase.from('generations').insert({
+        project_id: activeConversation.id,
+        role: 'user',
+        content: input
+    }).then();
+
     setInput("");
     setLoading(true);
 
@@ -91,7 +178,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           apiKey,
-          prompt: userMsg.content,
+          prompt: input, // use the captured input variable
           ratio,
           resolution,
           temperature: 0.7, 
@@ -107,7 +194,7 @@ export default function Home() {
             id: generateId(),
             role: 'model',
             content: data.image,
-            textPrompt: userMsg.content,
+            textPrompt: input,
             metadata: {
                 timestamp: new Date().toISOString(),
                 ratio,
@@ -119,16 +206,24 @@ export default function Home() {
         updatedConv = { ...updatedConv, messages: [...updatedConv.messages, aiMsg] }; // Refresh ref
         setConversations(prev => prev.map(c => c.id === currentId ? updatedConv : c));
         
-        // --- SMART SAVE LOGIC (Client-Side Download) ---
-        // Since we are on web, we trigger a download.
-        // We can simulate the folder structure by naming convention if the user sets their browser to 'Ask where to save',
-        // but typically web downloads go to default. 
-        // We will respect the filename convention: NanoBanana_[Project]_[Date].png
-        
+        // Save AI Msg to DB
+        // WARNING: Storing Base64 image in TEXT column is heavy. 
+        // Ideally upload to Storage. But per user request "Supabase free limit", keeping it simple for now or expecting just text?
+        // Actually user said "database should support it... maybe link Google Drive".
+        // For now, allow Base64 in DB (it works for small scale) but warn user.
+        await supabase.from('generations').insert({
+            project_id: activeConversation.id,
+            role: 'model',
+            content: data.image, // Base64
+            prompt_text: input,
+            ratio,
+            resolution,
+            temperature: 0.7
+        });
+
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const projectNameClean = updatedConv.title.replace(/[^a-z0-9]/gi, '_').slice(0, 20);
         let filename = `NanoBanana_${timestamp}`;
-        
         if (smartSaveMode === 'project') {
             filename = `NanoBanana_${projectNameClean}_${timestamp}`;
         }
@@ -161,7 +256,7 @@ export default function Home() {
       <Sidebar 
         conversations={conversations} 
         currentId={currentId} 
-        onSelect={setCurrentId} 
+        onSelect={handleSelectProject} 
         onNew={handleNewConversation} 
       />
 
