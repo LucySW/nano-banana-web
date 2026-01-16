@@ -1,3 +1,10 @@
+"use client";
+import { useState, useEffect } from 'react';
+import { Conversation, Message } from '../types';
+import { ZeroConfigModal } from '../components/ZeroConfigModal';
+import { Sidebar } from '../components/Sidebar';
+import { ControlDeck } from '../components/ControlDeck';
+import { Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 
