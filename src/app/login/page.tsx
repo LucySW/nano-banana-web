@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,7 +14,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     
-    // Attempt Login
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -29,6 +28,10 @@ export default function LoginPage() {
   };
 
   const handleSignUp = async () => {
+    if (!email || !password) {
+      alert("Preencha email e senha");
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -38,7 +41,7 @@ export default function LoginPage() {
     if (error) {
       alert(error.message);
     } else {
-      alert("Conta criada! Verifique seu email.");
+      alert("Conta criada! Verifique seu email para confirmar.");
     }
     setLoading(false);
   };
@@ -48,178 +51,158 @@ export default function LoginPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      height: '100vh',
+      minHeight: '100vh',
       background: 'var(--bg-deep)',
-      color: 'var(--text-primary)',
-      position: 'relative',
-      overflow: 'hidden'
+      padding: '2rem'
     }}>
-      {/* Background Ambience */}
+      {/* Background Gradient */}
       <div style={{
-          position: 'absolute',
-          top: '-20%',
-          left: '-10%',
-          width: '50vw',
-          height: '50vw',
-          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)',
-          filter: 'blur(80px)',
-          zIndex: 0
-      }}></div>
+        position: 'fixed',
+        top: '-30%',
+        left: '-20%',
+        width: '60vw',
+        height: '60vw',
+        background: 'radial-gradient(circle, rgba(96, 165, 250, 0.08) 0%, transparent 60%)',
+        pointerEvents: 'none'
+      }} />
 
-      <div className="glass-panel" style={{
-        padding: '3rem 2rem',
-        borderRadius: '24px',
+      <div className="glass-panel slide-up" style={{
+        padding: '2.5rem',
         width: '100%',
-        maxWidth: '420px',
-        zIndex: 10,
-        backdropFilter: 'blur(30px)',
-        border: '1px solid rgba(255,255,255,0.05)'
+        maxWidth: '400px',
+        position: 'relative'
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-           {/* Breathing Logo */}
-           <div 
-             className="breathing-logo glow-animated"
-             style={{ 
-                width: '80px', 
-                height: '80px', 
-                background: 'url(/logo-r.png)', 
-                backgroundSize: 'contain',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'center',
-                margin: '0 auto 1.5rem auto',
-                borderRadius: '50%', // Circular glow
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-             }}
-          >
-             {/* Fallback */}
-             <Sparkles size={40} color="var(--accent-primary)" style={{ opacity: 0 }} /> 
-          </div>
-
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 300, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Romsoft Studio AI</h1>
-          <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem' }}>Sua porta de entrada para a criatividade infinita.</p>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <img 
+            src="/logo-r.png" 
+            alt="Romsoft Studio AI" 
+            style={{ 
+              width: '56px', 
+              height: '56px', 
+              marginBottom: '1rem',
+              filter: 'drop-shadow(0 0 20px rgba(96, 165, 250, 0.3))'
+            }} 
+          />
+          <h1 style={{ 
+            fontSize: '1.4rem', 
+            fontWeight: 500, 
+            margin: 0,
+            letterSpacing: '-0.02em'
+          }}>
+            <span className="gradient-text">Romsoft Studio</span> AI
+          </h1>
+          <p style={{ 
+            color: 'var(--text-muted)', 
+            fontSize: '0.9rem', 
+            marginTop: '0.5rem' 
+          }}>
+            Entre para começar a criar
+          </p>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ position: 'relative' }}>
-             <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '1rem',
-                  background: 'rgba(0,0,0,0.2)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '12px',
-                  color: 'white',
-                  outline: 'none',
-                  fontSize: '0.95rem',
-                  transition: 'all 0.3s ease'
-                }}
-                className="input-glow"
-                onFocus={(e) => e.target.style.borderColor = 'var(--rgb-blue)'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-              />
-          </div>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input"
+            required
+          />
           
-          <div style={{ position: 'relative' }}>
-              <input
-                type="password"
-                placeholder="Senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '1rem',
-                  background: 'rgba(0,0,0,0.2)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '12px',
-                  color: 'white',
-                  outline: 'none',
-                  fontSize: '0.95rem',
-                  transition: 'all 0.3s ease'
-                }}
-                className="input-glow"
-                onFocus={(e) => e.target.style.borderColor = 'var(--rgb-blue)'}
-                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.1)'}
-              />
-          </div>
+          <input
+            type="password"
+            placeholder="Senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="input"
+            required
+          />
 
           <button 
             type="submit" 
             disabled={loading}
-            className="btn-primary-action"
+            className="btn btn-primary"
             style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: '0.5rem', 
-                marginTop: '1rem',
-                width: '100%',
-                padding: '1rem',
-                borderRadius: '12px',
-                background: 'linear-gradient(45deg, var(--rgb-blue), var(--accent-primary))',
-                color: 'white',
-                fontWeight: 600,
-                letterSpacing: '0.05em'
+              width: '100%',
+              padding: '14px',
+              marginTop: '0.5rem',
+              fontSize: '0.95rem'
             }}
           >
-            {loading ? 'Inicializando...' : 'Entrar'} <ArrowRight size={18} />
+            {loading ? (
+              <Loader2 size={18} className="spin" />
+            ) : (
+              <>
+                Entrar
+                <ArrowRight size={18} />
+              </>
+            )}
           </button>
         </form>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '2rem 0' }}>
-            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
-            <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>ou continuar com</span>
-            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)' }}></div>
+        {/* Divider */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '1rem', 
+          margin: '1.5rem 0' 
+        }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
+          <span style={{ 
+            color: 'var(--text-muted)', 
+            fontSize: '0.75rem', 
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
+            ou
+          </span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
         </div>
 
+        {/* Google OAuth */}
         <button 
-            onClick={async () => {
-                setLoading(true);
-                const { error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                        redirectTo: `${window.location.origin}`,
-                        queryParams: {
-                            access_type: 'offline', 
-                            prompt: 'consent',
-                            scope: 'https://www.googleapis.com/auth/drive.file email profile openid'
-                        }
-                    }
-                });
-                if (error) alert(error.message);
-            }}
-            className="btn-clean"
-            style={{ 
-                width: '100%', 
-                background: 'rgba(255,255,255,0.05)', 
-                color: 'white', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: '0.8rem',
-                padding: '1rem',
-                borderRadius: '12px',
-                fontWeight: 500,
-                border: '1px solid rgba(255,255,255,0.1)',
-                transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+          onClick={async () => {
+            setLoading(true);
+            await supabase.auth.signInWithOAuth({
+              provider: 'google',
+              options: {
+                redirectTo: `${window.location.origin}`,
+                queryParams: {
+                  access_type: 'offline', 
+                  prompt: 'consent',
+                  scope: 'https://www.googleapis.com/auth/drive.file email profile openid'
+                }
+              }
+            });
+          }}
+          disabled={loading}
+          className="btn btn-subtle"
+          style={{ 
+            width: '100%', 
+            padding: '12px',
+            gap: '10px'
+          }}
         >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="G" style={{ width: '20px' }} />
-            Google
+          <img 
+            src="https://www.svgrepo.com/show/475656/google-color.svg" 
+            alt="Google" 
+            style={{ width: '18px' }} 
+          />
+          Continuar com Google
         </button>
 
-        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+        {/* Sign Up Link */}
+        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
           <button 
+            type="button"
             onClick={handleSignUp}
-            className="btn-clean"
-            style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}
+            className="btn btn-ghost"
+            style={{ fontSize: '0.85rem' }}
           >
-            Ainda não tem acesso? <span style={{ color: 'var(--rgb-green)', marginLeft: '0.3rem' }}>Criar Conta</span>
+            Não tem conta? <span style={{ color: 'var(--accent-blue)', marginLeft: '4px' }}>Criar agora</span>
           </button>
         </div>
       </div>

@@ -4,13 +4,20 @@ import { Conversation, Message } from '../types';
 import { ZeroConfigModal } from '../components/ZeroConfigModal';
 import { Sidebar } from '../components/Sidebar';
 import { CommandCapsule } from '../components/CommandCapsule';
-import { Sparkles, Cloud, LogIn, User } from 'lucide-react';
+import { Sparkles, Wand2, Image, Palette } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 import { uploadImageToDrive } from '../lib/drive';
 import { WelcomeModal } from '../components/WelcomeModal';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
+
+// Quick Start Prompts
+const QUICK_PROMPTS = [
+  { icon: <Wand2 size={14} />, text: "Paisagem futurista com neon" },
+  { icon: <Image size={14} />, text: "Retrato estilo pintura a óleo" },
+  { icon: <Palette size={14} />, text: "Abstract art com cores vibrantes" },
+];
 
 export default function Home() {
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -22,27 +29,22 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // New States
   const [isGuest, setIsGuest] = useState(true);
   const [userSession, setUserSession] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
 
   const router = useRouter();
   
-  // Settings State
   const [ratio, setRatio] = useState("16:9");
   const [resolution, setResolution] = useState("1K");
   const [smartSaveMode, setSmartSaveMode] = useState<'flat' | 'project'>('flat');
 
   // Welcome Modal Logic
   useEffect(() => {
-    // Check for API key on mount
     const stored = localStorage.getItem("romsoft_api_key");
     if (stored) {
         setApiKey(stored);
     } else {
-        // Only show welcome if no key is found
-        // Use timeout to prevent hydration mismatch flicker
         setTimeout(() => setShowWelcomeModal(true), 500);
     }
   }, []);
@@ -55,10 +57,9 @@ export default function Home() {
     setShowWelcomeModal(false);
   };
 
-  
   // --- LOAD PROJECTS (Cloud) ---
   const loadCloudProjects = async (userId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
         .from('projects')
         .select('*')
         .order('updated_at', { ascending: false });
@@ -85,18 +86,14 @@ export default function Home() {
         if (localConvs.length === 0) return;
 
         setSyncing(true);
-        console.log("Syncing local projects to cloud...");
-
         for (const conv of localConvs) {
-            // 1. Create Project in DB
-            const { data: projData, error: projError } = await supabase
+            const { data: projData } = await supabase
                 .from('projects')
                 .insert([{ user_id: userId, title: conv.title }])
                 .select()
                 .single();
             
             if (projData) {
-                // 2. Upload Messages
                 for (const msg of conv.messages) {
                     await supabase.from('generations').insert({
                         project_id: projData.id,
@@ -111,18 +108,17 @@ export default function Home() {
             }
         }
         
-        // Clear local after sync
         localStorage.removeItem('romsoft_conversations');
-        console.log("Sync complete.");
         setSyncing(false);
     } catch (e) {
         console.error("Sync failed", e);
+        setSyncing(false);
     }
   };
 
   // --- LOAD MESSAGES (Cloud) ---
   const loadCloudMessages = async (projectId: string) => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('generations')
         .select('*')
         .eq('project_id', projectId)
@@ -152,28 +148,20 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Auth & Init Logic
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        // --- LOGGED IN ---
         setIsGuest(false);
         setUserSession(session);
-        
-        // 1. Sync any pending local data
         await syncLocalToCloud(session.user.id);
-
-        // 2. Load Cloud Data
         const cloudProjects = await loadCloudProjects(session.user.id);
         setConversations(cloudProjects);
         if (cloudProjects.length > 0) {
             setCurrentId(cloudProjects[0].id);
             loadCloudMessages(cloudProjects[0].id);
         }
-
       } else {
-        // --- GUEST MODE ---
         setIsGuest(true);
         const savedConvs = localStorage.getItem('romsoft_conversations');
         if (savedConvs) {
@@ -185,14 +173,10 @@ export default function Home() {
     };
     init();
 
-    // Load API Key (Local Setting)
     const key = localStorage.getItem('romsoft_key');
-    if (key) {
-      setApiKey(key);
-    } 
+    if (key) setApiKey(key);
   }, []);
 
-  // Sync LocalStorage if Guest
   useEffect(() => {
     if (isGuest && conversations.length > 0) {
         localStorage.setItem('romsoft_conversations', JSON.stringify(conversations));
@@ -201,16 +185,13 @@ export default function Home() {
 
   const handleSelectProject = (id: string) => {
       setCurrentId(id);
-      if (!isGuest) {
-          loadCloudMessages(id);
-      }
+      if (!isGuest) loadCloudMessages(id);
   };
 
   const handleValidate = (key: string) => {
     localStorage.setItem('romsoft_key', key);
     setApiKey(key);
     setShowKeyModal(false);
-    // If conversations empty, start new
     if (conversations.length === 0) handleNewConversation();
   };
 
@@ -228,7 +209,6 @@ export default function Home() {
         setConversations(prev => [newConv, ...prev]);
         setCurrentId(newConv.id);
     } else {
-        // Create in DB
         if (!userSession?.user) return;
         const { data } = await supabase
             .from('projects')
@@ -254,13 +234,11 @@ export default function Home() {
   const handleGenerate = async () => {
     if (!input.trim()) return;
 
-    // 1. Check API Key
     if (!apiKey) {
         setShowKeyModal(true);
         return;
     }
     
-    // Ensure active conversation
     let currentConv = activeConversation;
     if (!currentConv) {
          if (conversations.length === 0) {
@@ -271,12 +249,10 @@ export default function Home() {
     
     if (!currentConv) return;
 
-    // Optimistic Update
     const tempId = generateId();
     const userMsg: Message = { id: tempId, role: 'user', content: input };
     let updatedConv = { ...currentConv, messages: [...currentConv.messages, userMsg] };
     
-    // Update Title if first message
     let isFirst = currentConv.messages.length === 0;
     if (isFirst) {
         const newTitle = input.slice(0, 30) + (input.length > 30 ? "..." : "");
@@ -288,7 +264,6 @@ export default function Home() {
 
     setConversations(prev => prev.map(c => c.id === currentId ? updatedConv : c));
     
-    // Save User Msg
     if (!isGuest) {
         supabase.from('generations').insert({
             project_id: currentConv.id,
@@ -335,10 +310,7 @@ export default function Home() {
         setConversations(prev => prev.map(c => c.id === currentId ? updatedConv : c));
         
         if (!isGuest && userSession?.provider_token) {
-            // --- GOOGLE DRIVE UPLOAD ---
-            console.log("Uploading to Drive...");
             try {
-                // Determine Folder Name based on Smart Save Mode
                 const folderName = smartSaveMode === 'project' ? updatedConv.title.replace(/[^a-z0-9 ]/gi, '').trim() : undefined;
 
                 const driveResult = await uploadImageToDrive(
@@ -348,21 +320,18 @@ export default function Home() {
                     folderName
                 );
                 
-                // Save Message with Drive Link
                 await supabase.from('generations').insert({
                     project_id: currentConv.id,
                     role: 'model',
-                    content: driveResult.webViewLink || data.image, // Use link if available
+                    content: driveResult.webViewLink || data.image,
                     prompt_text: input,
                     ratio,
                     resolution,
                     temperature: 0.7
                 });
-                console.log("Saved to Drive:", driveResult.webViewLink);
                 
             } catch (driveErr) {
-                console.error("Drive upload failed, using DB fallback", driveErr);
-                // Fallback to storing base64
+                console.error("Drive upload failed", driveErr);
                 await supabase.from('generations').insert({
                     project_id: currentConv.id,
                     role: 'model',
@@ -374,7 +343,6 @@ export default function Home() {
                 });
             }
         } else if (!isGuest) {
-             // Logged in but no Google Token (e.g. Email login) -> DB Storage
              await supabase.from('generations').insert({
                 project_id: currentConv.id,
                 role: 'model',
@@ -412,18 +380,16 @@ export default function Home() {
       });
   };
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', width: '100vw' }}>
-      
-      {/* Welcome Modal (Onboarding) */}
-      {showWelcomeModal && (
-        <WelcomeModal onComplete={handleWelcomeComplete} />
-      )}
+  const handleQuickPrompt = (text: string) => {
+      setInput(text);
+  };
 
-      {/* API Key Modal (On Demand) */}
-      {showKeyModal && (
-        <ZeroConfigModal onValidate={handleValidate} />
-      )}
+  return (
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', background: 'var(--bg-deep)' }}>
+      
+      {/* Modals */}
+      {showWelcomeModal && <WelcomeModal onComplete={handleWelcomeComplete} />}
+      {showKeyModal && <ZeroConfigModal onValidate={handleValidate} />}
 
       <Sidebar 
         conversations={conversations} 
@@ -433,90 +399,168 @@ export default function Home() {
         isGuest={isGuest}
       />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-deep)', position: 'relative' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
         
-        {/* Top Right Utilities (REMOVED) */}
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '2rem 15%', display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '200px' }}>
+        {/* Chat Area */}
+        <div style={{ 
+          flex: 1, 
+          overflowY: 'auto', 
+          padding: '2rem', 
+          paddingBottom: '140px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          
+          {/* Empty State / Hero */}
           {(!activeConversation || activeConversation.messages.length === 0) ? (
-            <div style={{ marginTop: '20vh', textAlign: 'center', opacity: 1 }}>
-               {/* Breathing Logo Area */}
-              <div 
-                 className="breathing-logo rgb-flow-border"
-                 style={{ 
-                    width: '100px', 
-                    height: '100px', 
-                    background: 'url(/logo-r.png)', 
-                    backgroundSize: 'contain',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'center',
-                    margin: '0 auto 1.5rem auto',
-                    borderRadius: '50%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                 }}
-              >
-                  {/* Fallback SVG Logo if image fails or for immediate visual */}
-                 <svg width="80" height="80" viewBox="0 0 100 100" fill="none" stroke="white" strokeWidth="6" style={{ filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.3))', display: 'none' }}>
-                    <path d="M30 20 H60 Q80 20 80 45 Q80 70 60 70 H30 V20 Z" />
-                    <path d="M60 70 L90 100" />
-                 </svg>
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              textAlign: 'center',
+              gap: '1.5rem'
+            }}>
+              {/* Logo - Simple, No Animation */}
+              <img 
+                src="/logo-r.png" 
+                alt="Romsoft Studio AI" 
+                style={{ 
+                  width: '64px', 
+                  height: '64px', 
+                  objectFit: 'contain',
+                  filter: 'drop-shadow(0 0 20px rgba(96, 165, 250, 0.2))'
+                }} 
+              />
+              
+              {/* Title with Gradient */}
+              <div>
+                <h1 style={{ 
+                  fontSize: '1.5rem', 
+                  fontWeight: 400, 
+                  margin: 0,
+                  letterSpacing: '-0.02em'
+                }}>
+                  <span className="gradient-text">Romsoft Studio</span> AI
+                </h1>
+                <p style={{ 
+                  color: 'var(--text-muted)', 
+                  fontSize: '0.9rem', 
+                  marginTop: '0.5rem',
+                  fontWeight: 400
+                }}>
+                  Transforme suas ideias em arte visual
+                </p>
               </div>
 
-              <h1 className="text-spaced" style={{ margin: '0 0 0.5rem 0', fontWeight: 300, fontSize: '1.2rem', color: 'var(--text-primary)' }}>Romsoft Studio AI</h1>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', fontWeight: 300 }}>O que vamos criar hoje?</p>
+              {/* Quick Prompts */}
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: '0.5rem', 
+                justifyContent: 'center',
+                marginTop: '1rem'
+              }}>
+                {QUICK_PROMPTS.map((prompt, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => handleQuickPrompt(prompt.text)}
+                    className="btn-subtle"
+                    style={{ 
+                      fontSize: '0.8rem',
+                      padding: '8px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    {prompt.icon}
+                    {prompt.text}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
-            activeConversation.messages.map(msg => (
-                <div key={msg.id} style={{ 
-                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                    maxWidth: msg.role === 'user' ? '60%' : '100%',
-                    marginBottom: '1rem' // Spacing
-                }}>
-                    {msg.role === 'user' ? (
-                        <div style={{ 
-                            background: 'transparent', 
-                            padding: '1rem', 
-                            borderRadius: '16px',
-                            color: 'var(--text-secondary)',
-                            border: '1px solid var(--border-color)',
-                            textAlign: 'right',
-                            fontSize: '1.1rem',
-                            fontWeight: 300
-                        }}>
-                             {msg.content}
-                        </div>
-                    ) : (
-                        <div className="ai-message-container" style={{ animation: 'fadeIn 0.5s ease' }}>
-                            <div className="glass-panel" style={{ 
-                                padding: '4px', 
-                                borderRadius: '16px',
-                                overflow: 'hidden'
-                             }}>
-                                <img 
-                                    src={msg.content.startsWith('http') ? msg.content : `data:image/png;base64,${msg.content}`} 
-                                    style={{ display: 'block', width: 'auto', maxHeight: '70vh', borderRadius: '12px' }}
-                                />
-                            </div>
-                            <div style={{
-                                paddingLeft: '0.5rem', marginTop: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', fontSize: '0.7rem', color: 'var(--text-dim)', display: 'flex', gap: '0.5rem'
-                            }}
-                            title="Metadata">
-                                <span style={{ color: 'var(--rgb-blue)' }}>{msg.metadata?.ratio || "Ratio"}</span>
-                                <span> • </span>
-                                <span>{msg.metadata?.resolution || "Res"}</span>
-                            </div>
-                        </div>
-                    )}
+            /* Messages */
+            <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+              {activeConversation.messages.map(msg => (
+                <div 
+                  key={msg.id} 
+                  className="fade-in"
+                  style={{ 
+                    display: 'flex',
+                    justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                    marginBottom: '1.5rem'
+                  }}
+                >
+                  {msg.role === 'user' ? (
+                    <div style={{ 
+                      maxWidth: '70%',
+                      padding: '12px 16px',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '16px 16px 4px 16px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.95rem',
+                      lineHeight: 1.5
+                    }}>
+                      {msg.content}
+                    </div>
+                  ) : (
+                    <div style={{ maxWidth: '100%' }}>
+                      <div className="glass-panel" style={{ 
+                        padding: '4px', 
+                        borderRadius: '16px',
+                        overflow: 'hidden'
+                      }}>
+                        <img 
+                          src={msg.content.startsWith('http') ? msg.content : `data:image/png;base64,${msg.content}`} 
+                          alt="Generated"
+                          style={{ 
+                            display: 'block', 
+                            maxWidth: '100%',
+                            maxHeight: '60vh', 
+                            borderRadius: '12px' 
+                          }}
+                        />
+                      </div>
+                      {/* Metadata */}
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '0.75rem', 
+                        marginTop: '0.5rem',
+                        paddingLeft: '4px',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-muted)'
+                      }}>
+                        <span style={{ color: 'var(--accent-blue)' }}>{msg.metadata?.ratio}</span>
+                        <span>•</span>
+                        <span>{msg.metadata?.resolution}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
-            ))
+              ))}
+            </div>
           )}
           
+          {/* Loading Shimmer */}
           {loading && (
-             <div className="shimmer-frame" style={{ width: '100%', height: '400px', maxWidth: '600px', borderRadius: '16px' }}></div>
+            <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+              <div 
+                className="shimmer" 
+                style={{ 
+                  width: '100%', 
+                  height: '300px', 
+                  borderRadius: '16px'
+                }} 
+              />
+            </div>
           )}
         </div>
 
-        {/* Floating Command Capsule */}
+        {/* Command Capsule */}
         <CommandCapsule 
             prompt={input} setPrompt={setInput}
             onGenerate={handleGenerate}
@@ -529,7 +573,7 @@ export default function Home() {
             apiKey={apiKey} setApiKey={setApiKey}
         />
         
-      </div>
+      </main>
     </div>
   );
 }
