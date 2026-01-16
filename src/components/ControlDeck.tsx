@@ -17,6 +17,7 @@ export function ControlDeck({
   smartSaveMode, setSmartSaveMode
 }: ControlDeckProps) {
 
+  const [showSaveMenu, setShowSaveMenu] = useState(false);
   const [showRatioMenu, setShowRatioMenu] = useState(false);
   const ratioMenuRef = useRef<HTMLDivElement>(null);
   const saveMenuRef = useRef<HTMLDivElement>(null);
